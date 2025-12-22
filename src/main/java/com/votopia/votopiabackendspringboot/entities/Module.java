@@ -1,0 +1,26 @@
+package com.votopia.votopiabackendspringboot.entities;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+
+import java.util.HashSet;
+import java.util.Set;
+
+@Entity
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "modules")
+public class Module {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(length = 50, unique = true, nullable = false)
+    private String name;
+
+    private String description;
+
+    @ManyToMany(mappedBy = "modules")
+    private Set<Plan> plans = new HashSet<>();
+}
