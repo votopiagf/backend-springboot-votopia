@@ -4,6 +4,7 @@ import com.votopia.votopiabackendspringboot.config.CustomUserDetails;
 import com.votopia.votopiabackendspringboot.dtos.SuccessResponse;
 import com.votopia.votopiabackendspringboot.dtos.user.UserCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserSummaryDto;
+import com.votopia.votopiabackendspringboot.dtos.user.UserUpdateDto;
 import com.votopia.votopiabackendspringboot.services.UserService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -83,6 +84,21 @@ public class UserController {
                 200,
                 null,
                 "Utente eliminato con successo",
+                System.currentTimeMillis()
+        ));
+    }
+
+    @PutMapping("/update/")
+    ResponseEntity<SuccessResponse<UserSummaryDto>> update(@RequestBody UserUpdateDto user, Authentication authentication){
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getId();
+
+        UserSummaryDto userUpdated = userService.update(userId, user);
+        return ResponseEntity.ok(new SuccessResponse<UserSummaryDto>(
+                true,
+                200,
+                userUpdated,
+                "Utente modificato con successo",
                 System.currentTimeMillis()
         ));
     }

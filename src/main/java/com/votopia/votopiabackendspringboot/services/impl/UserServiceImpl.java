@@ -2,6 +2,7 @@ package com.votopia.votopiabackendspringboot.services.impl;
 
 import com.votopia.votopiabackendspringboot.dtos.user.UserCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserSummaryDto;
+import com.votopia.votopiabackendspringboot.dtos.user.UserUpdateDto;
 import com.votopia.votopiabackendspringboot.entities.List;
 import com.votopia.votopiabackendspringboot.entities.Organization;
 import com.votopia.votopiabackendspringboot.entities.Role;
@@ -289,5 +290,95 @@ public class UserServiceImpl implements UserService {
         // Non serve chiamare save() esplicitamente se il metodo è @Transactional,
         // ma lo mettiamo per chiarezza o se non usi il dirty checking automatico.
         userRepository.save(userToDelete);
+    }
+
+    @Override
+    @Transactional
+    public UserSummaryDto update(Long authUserId, UserUpdateDto dto) {
+        // 1. Identificazione Target
+        Long targetId = (dto.getId() != null) ? dto.getId() : authUserId;
+        User authUser = userRepository.findById(authUserId).orElseThrow(() -> new NotFoundException("Auth user not found"));
+        User targetUser = userRepository.findById(targetId).orElseThrow(() -> new NotFoundException("Target user not found"));
+
+        // 2. Controllo Permessi (Simile alla logica Django)
+        boolean isSelfUpdate = authUserId.equals(targetId);
+        boolean canModifyOrg = permissionService.hasPermission(authUserId, "update_user_organization");
+        boolean canModifyList = permissionService.hasPermission(authUserId, "update_user_list");
+
+        validateUpdatePermissions(authUser, targetUser, isSelfUpdate, canModifyOrg, canModifyList);
+
+        // 3. Aggiornamento campi base
+        if (dto.getName() != null) targetUser.setName(dto.getName());
+        if (dto.getSurname() != null) targetUser.setSurname(dto.getSurname());
+        if (dto.getEmail() != null) targetUser.setEmail(dto.getEmail());
+
+        // 4. Reset Password (SHA-256 come richiesto)
+        if (Boolean.TRUE.equals(dto.getResetPassword())) {
+            String temporaryPass = "Cambiami";
+            targetUser.setPassword(passwordEncoder.encode(temporaryPass)); // Implementa con MessageDigest
+            targetUser.setMustChangePassword(true);
+            log.info("Password resettata per utente {}. Nuova pass temporanea: {}", targetId, temporaryPass);
+        }
+
+        // 5. Gestione Liste (solo se admin)
+        if (canModifyOrg || canModifyList) {
+            handleListAssociations(targetUser, authUser, dto, canModifyOrg);
+        }
+
+        return new UserSummaryDto(userRepository.save(targetUser));
+    }
+
+    private void validateUpdatePermissions(User auth, User target, boolean isSelf, boolean hasOrg, boolean hasList) {
+        if (hasOrg) {
+            if (!auth.getOrg().getId().equals(target.getOrg().getId()))
+                throw new ForbiddenException("Cross-org update non consentito");
+            return;
+        }
+
+        if (hasList) {
+            boolean sharedList = permissionService.checkSharedLists(auth.getId(), target.getId(), "update_user_list");
+            if (!sharedList && !isSelf)
+                throw new ForbiddenException("L'utente target non è in una lista autorizzata");
+            return;
+        }
+
+        if (!isSelf) {
+            throw new ForbiddenException("Non hai i permessi per modificare questo utente");
+        }
+    }
+
+    /**
+     * Gestisce l'aggiunta e la rimozione delle liste per un utente target.
+     */
+    private void handleListAssociations(User target, User auth, UserUpdateDto dto, boolean isOrgAdmin) {
+
+        // --- RIMOZIONE LISTE ---
+        if (dto.getRemoveLists() != null && !dto.getRemoveLists().isEmpty()) {
+            for (Long listId : dto.getRemoveLists()) {
+                // Se sono OrgAdmin posso rimuovere tutto, altrimenti solo se ho permessi su quella lista
+                if (isOrgAdmin || permissionService.hasPermissionOnList(auth.getId(), listId, "update_user_list")) {
+                    target.getLists().removeIf(l -> l.getId().equals(listId));
+                    log.info("Rimossa lista {} dall'utente {}", listId, target.getId());
+
+                    // Opzionale: Rimuovi i ruoli associati a questa lista (come nel codice Django)
+                    target.getRoles().removeIf(role -> role.getList() != null && role.getList().getId().equals(listId));
+                }
+            }
+        }
+
+        // --- AGGIUNTA LISTE ---
+        if (dto.getAddLists() != null && !dto.getAddLists().isEmpty()) {
+            for (Long listId : dto.getAddLists()) {
+                if (isOrgAdmin || permissionService.hasPermissionOnList(auth.getId(), listId, "update_user_list")) {
+                    // Verifichiamo che la lista esista e appartenga alla stessa Org
+                    listRepository.findById(listId).ifPresent(list -> {
+                        if (list.getOrg().getId().equals(target.getOrg().getId())) {
+                            target.getLists().add(list);
+                            log.info("Aggiunta lista {} all'utente {}", listId, target.getId());
+                        }
+                    });
+                }
+            }
+        }
     }
 }

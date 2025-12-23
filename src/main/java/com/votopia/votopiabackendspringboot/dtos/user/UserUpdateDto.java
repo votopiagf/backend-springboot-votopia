@@ -10,7 +10,7 @@ import java.util.Set;
 @Getter
 @Setter
 public class UserUpdateDto {
-    private Long userId;
+    private Long id;
     private String name;
     private String surname;
     private String email;

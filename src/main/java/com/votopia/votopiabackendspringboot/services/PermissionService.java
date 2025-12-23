@@ -35,4 +35,6 @@ public interface PermissionService {
     Set<List> getListsUserHasPermission(User user, String permissionName);
 
     boolean hasPermissionOnList(Long userId, Long listId, String permissionName);
+
+    boolean checkSharedLists(Long authUserId, Long targetUserId, String permissionCode);
 }

@@ -46,6 +46,8 @@ public class Role {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    private String color;
+
     @Column(nullable = false)
     private Integer level = 1;
 

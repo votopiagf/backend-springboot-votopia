@@ -2,6 +2,7 @@ package com.votopia.votopiabackendspringboot.repositories;
 
 import com.votopia.votopiabackendspringboot.entities.List;
 import com.votopia.votopiabackendspringboot.entities.Organization;
+import com.votopia.votopiabackendspringboot.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -16,4 +17,10 @@ public interface ListRepository extends JpaRepository<List, Long> {
     java.util.List<List> findByOrg(Organization org);
 
     Set<List> findListsByOrg(Organization org);
+
+    long countByOrgId(Long orgId);
+
+    Set<List> findAllByOrgId(Long orgId);
+
+    Set<List> findAllByUsersIdAndOrgId(Long authUserId, Long orgId);
 }

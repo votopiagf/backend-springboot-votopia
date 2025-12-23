@@ -3,6 +3,7 @@ package com.votopia.votopiabackendspringboot.services.impl;
 import com.votopia.votopiabackendspringboot.dtos.permission.PermissionSummaryDto;
 import com.votopia.votopiabackendspringboot.entities.List;
 import com.votopia.votopiabackendspringboot.entities.User;
+import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
 import com.votopia.votopiabackendspringboot.repositories.ListRepository;
 import com.votopia.votopiabackendspringboot.repositories.UserRepository;
 import com.votopia.votopiabackendspringboot.services.PermissionService;
@@ -71,5 +72,20 @@ public class PermissionServiceImpl implements PermissionService {
                 .filter(role -> role.getList() != null && role.getList().getId().equals(listId)) // Solo ruoli di quella lista
                 .flatMap(role -> role.getPermissions().stream()) // "Apriamo" i permessi di quei ruoli
                 .anyMatch(p -> p.getName().equals(permissionName)); // Controlliamo se il nome coincide
+    }
+
+    /**
+     * Verifica se l'amministratore condivide una lista con il target
+     * ed è autorizzato a gestirla.
+     */
+    @Override
+    public boolean checkSharedLists(Long authUserId, Long targetUserId, String permissionCode) {
+        // Recuperiamo le liste del target
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new NotFoundException("Target non trovato"));
+
+        // Controlliamo se per almeno una lista del target, l'admin ha il permesso richiesto
+        return target.getLists().stream()
+                .anyMatch(list -> hasPermissionOnList(authUserId, list.getId(), permissionCode));
     }
 }

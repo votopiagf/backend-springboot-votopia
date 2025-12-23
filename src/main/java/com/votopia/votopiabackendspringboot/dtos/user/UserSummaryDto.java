@@ -2,11 +2,9 @@ package com.votopia.votopiabackendspringboot.dtos.user;
 
 import com.votopia.votopiabackendspringboot.dtos.organization.OrganizationSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleSummaryDto;
-import com.votopia.votopiabackendspringboot.entities.Organization;
 import com.votopia.votopiabackendspringboot.entities.User;
 import lombok.*;
 
-import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.stream.Collectors;
 

@@ -2,6 +2,7 @@ package com.votopia.votopiabackendspringboot.services;
 
 import com.votopia.votopiabackendspringboot.dtos.user.UserCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserSummaryDto;
+import com.votopia.votopiabackendspringboot.dtos.user.UserUpdateDto;
 import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
 import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
 import com.votopia.votopiabackendspringboot.exceptions.ConflictException;
@@ -94,4 +95,21 @@ public interface UserService {
      * eliminare un utente di un'altra organizzazione (HTTP 403).
      */
     void delete(Long targetUserIdToDelete, Long authUserId);
+
+    /**
+     * Aggiorna i dati di un utente e gestisce le sue affiliazioni alle liste.
+     * <p>
+     * Regole di sicurezza:
+     * <ul>
+     * <li>Self-update: Consentito sempre per i campi base.</li>
+     * <li>Org-update: Richiede 'update_user_organization' per modificare chiunque nella stessa Org.</li>
+     * <li>List-update: Richiede 'update_user_list' per modificare utenti nelle proprie liste.</li>
+     * </ul>
+     * </p>
+     *
+     * @param authUserId ID dell'utente che esegue l'azione.
+     * @param dto Dati di aggiornamento.
+     * @return DTO dell'utente aggiornato.
+     */
+    UserSummaryDto update(Long authUserId, UserUpdateDto dto);
 }

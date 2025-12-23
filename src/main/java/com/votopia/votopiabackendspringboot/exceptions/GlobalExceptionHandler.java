@@ -79,4 +79,15 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(InternalServerException.class)
+    public ResponseEntity<ErrorResponse> handleInternalException(InternalServerException e){
+        ErrorResponse errorResponse = new ErrorResponse(
+                false,
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                e.getMessage(),
+                System.currentTimeMillis()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }

@@ -2,7 +2,9 @@ package com.votopia.votopiabackendspringboot.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -10,6 +12,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "file_categories")
+@Getter
+@Setter
 public class FileCategory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
