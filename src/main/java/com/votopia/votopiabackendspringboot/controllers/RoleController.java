@@ -2,13 +2,11 @@ package com.votopia.votopiabackendspringboot.controllers;
 
 import com.votopia.votopiabackendspringboot.config.CustomUserDetails;
 import com.votopia.votopiabackendspringboot.dtos.SuccessResponse;
-import com.votopia.votopiabackendspringboot.dtos.list.ListSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleInfoResponse;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleUpdateDto;
-import com.votopia.votopiabackendspringboot.entities.Role;
-import com.votopia.votopiabackendspringboot.services.RoleService;
+import com.votopia.votopiabackendspringboot.services.auth.RoleService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

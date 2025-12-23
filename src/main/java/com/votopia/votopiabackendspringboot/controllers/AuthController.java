@@ -2,7 +2,7 @@ package com.votopia.votopiabackendspringboot.controllers;
 
 import com.votopia.votopiabackendspringboot.dtos.auth.LoginRequestDto;
 import com.votopia.votopiabackendspringboot.dtos.auth.LoginSummaryDto;
-import com.votopia.votopiabackendspringboot.services.AuthService;
+import com.votopia.votopiabackendspringboot.services.auth.AuthService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;

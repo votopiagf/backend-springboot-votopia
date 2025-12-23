@@ -1,4 +1,4 @@
-package com.votopia.votopiabackendspringboot.services.impl;
+package com.votopia.votopiabackendspringboot.services.impl.auth;
 
 import com.votopia.votopiabackendspringboot.dtos.permission.PermissionSummaryDto;
 import com.votopia.votopiabackendspringboot.entities.List;
@@ -6,7 +6,7 @@ import com.votopia.votopiabackendspringboot.entities.User;
 import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
 import com.votopia.votopiabackendspringboot.repositories.ListRepository;
 import com.votopia.votopiabackendspringboot.repositories.UserRepository;
-import com.votopia.votopiabackendspringboot.services.PermissionService;
+import com.votopia.votopiabackendspringboot.services.auth.PermissionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

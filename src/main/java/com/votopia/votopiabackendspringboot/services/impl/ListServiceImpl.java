@@ -13,7 +13,7 @@ import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
 import com.votopia.votopiabackendspringboot.repositories.ListRepository;
 import com.votopia.votopiabackendspringboot.repositories.UserRepository;
 import com.votopia.votopiabackendspringboot.services.ListService;
-import com.votopia.votopiabackendspringboot.services.PermissionService;
+import com.votopia.votopiabackendspringboot.services.auth.PermissionService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

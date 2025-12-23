@@ -1,4 +1,4 @@
-package com.votopia.votopiabackendspringboot.services;
+package com.votopia.votopiabackendspringboot.services.auth;
 
 import com.votopia.votopiabackendspringboot.dtos.auth.LoginRequestDto;
 import com.votopia.votopiabackendspringboot.dtos.auth.LoginSummaryDto;

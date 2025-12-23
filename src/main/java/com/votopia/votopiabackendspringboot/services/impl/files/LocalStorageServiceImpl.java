@@ -1,6 +1,6 @@
-package com.votopia.votopiabackendspringboot.services.impl;
+package com.votopia.votopiabackendspringboot.services.impl.files;
 
-import com.votopia.votopiabackendspringboot.services.StorageService;
+import com.votopia.votopiabackendspringboot.services.files.StorageService;
 import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

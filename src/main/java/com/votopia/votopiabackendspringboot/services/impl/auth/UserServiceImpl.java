@@ -1,10 +1,9 @@
-package com.votopia.votopiabackendspringboot.services.impl;
+package com.votopia.votopiabackendspringboot.services.impl.auth;
 
 import com.votopia.votopiabackendspringboot.dtos.user.UserCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserUpdateDto;
 import com.votopia.votopiabackendspringboot.entities.List;
-import com.votopia.votopiabackendspringboot.entities.Organization;
 import com.votopia.votopiabackendspringboot.entities.Role;
 import com.votopia.votopiabackendspringboot.entities.User;
 import com.votopia.votopiabackendspringboot.exceptions.ConflictException;
@@ -13,8 +12,8 @@ import com.votopia.votopiabackendspringboot.repositories.ListRepository;
 import com.votopia.votopiabackendspringboot.repositories.OrganizationRepository;
 import com.votopia.votopiabackendspringboot.repositories.RoleRepository;
 import com.votopia.votopiabackendspringboot.repositories.UserRepository;
-import com.votopia.votopiabackendspringboot.services.UserService;
-import com.votopia.votopiabackendspringboot.services.PermissionService;
+import com.votopia.votopiabackendspringboot.services.auth.UserService;
+import com.votopia.votopiabackendspringboot.services.auth.PermissionService;
 import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
 import jakarta.annotation.Nullable;
 import jakarta.transaction.Transactional;

@@ -1,6 +1,6 @@
 package com.votopia.votopiabackendspringboot.config;
 
-import com.votopia.votopiabackendspringboot.services.JwtService;
+import com.votopia.votopiabackendspringboot.services.auth.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

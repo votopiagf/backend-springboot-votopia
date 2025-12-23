@@ -5,7 +5,7 @@ import com.votopia.votopiabackendspringboot.dtos.SuccessResponse;
 import com.votopia.votopiabackendspringboot.dtos.user.UserCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserUpdateDto;
-import com.votopia.votopiabackendspringboot.services.UserService;
+import com.votopia.votopiabackendspringboot.services.auth.UserService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

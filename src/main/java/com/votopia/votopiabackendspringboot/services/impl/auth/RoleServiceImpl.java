@@ -1,4 +1,4 @@
-package com.votopia.votopiabackendspringboot.services.impl;
+package com.votopia.votopiabackendspringboot.services.impl.auth;
 
 import com.votopia.votopiabackendspringboot.dtos.role.RoleInfoResponse;
 import com.votopia.votopiabackendspringboot.dtos.permission.PermissionSummaryDto;
@@ -15,8 +15,8 @@ import com.votopia.votopiabackendspringboot.repositories.ListRepository;
 import com.votopia.votopiabackendspringboot.repositories.PermissionRepository;
 import com.votopia.votopiabackendspringboot.repositories.RoleRepository;
 import com.votopia.votopiabackendspringboot.repositories.UserRepository;
-import com.votopia.votopiabackendspringboot.services.PermissionService;
-import com.votopia.votopiabackendspringboot.services.RoleService;
+import com.votopia.votopiabackendspringboot.services.auth.PermissionService;
+import com.votopia.votopiabackendspringboot.services.auth.RoleService;
 import io.micrometer.common.lang.Nullable;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;

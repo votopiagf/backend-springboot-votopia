@@ -1,4 +1,4 @@
-package com.votopia.votopiabackendspringboot.services;
+package com.votopia.votopiabackendspringboot.services.auth;
 
 import com.votopia.votopiabackendspringboot.dtos.permission.PermissionSummaryDto;
 import com.votopia.votopiabackendspringboot.entities.User;

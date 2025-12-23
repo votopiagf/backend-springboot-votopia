@@ -1,4 +1,4 @@
-package com.votopia.votopiabackendspringboot.services.impl;
+package com.votopia.votopiabackendspringboot.services.impl.files;
 
 import com.votopia.votopiabackendspringboot.dtos.file.FileSummaryDto;
 import com.votopia.votopiabackendspringboot.entities.File;
@@ -11,9 +11,9 @@ import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
 import com.votopia.votopiabackendspringboot.repositories.FileRepository;
 import com.votopia.votopiabackendspringboot.repositories.ListRepository;
 import com.votopia.votopiabackendspringboot.repositories.UserRepository;
-import com.votopia.votopiabackendspringboot.services.FileService;
-import com.votopia.votopiabackendspringboot.services.PermissionService;
-import com.votopia.votopiabackendspringboot.services.StorageService;
+import com.votopia.votopiabackendspringboot.services.files.FileService;
+import com.votopia.votopiabackendspringboot.services.auth.PermissionService;
+import com.votopia.votopiabackendspringboot.services.files.StorageService;
 import io.micrometer.common.lang.Nullable;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -103,5 +103,59 @@ public class FileServiceImpl implements FileService {
         // Se hai una categoria, la setti qui
 
         return new FileSummaryDto(fileRepository.save(newFile));
+    }
+
+    @Override
+    @Transactional
+    public void deleteFile(Long fileId, Long authUserId) {
+        // 1. Recupero Utente e File
+        User authUser = userRepository.findById(authUserId)
+                .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+
+        File fileTarget = fileRepository.findById(fileId)
+                .orElseThrow(() -> new NotFoundException("File non trovato"));
+
+        // 2. Controllo Multi-tenancy
+        if (!fileTarget.getOrg().getId().equals(authUser.getOrg().getId())) {
+            throw new ForbiddenException("Il file appartiene a un'altra organizzazione.");
+        }
+
+        // 3. Verifica Autorizzazione (3 Livelli)
+        boolean authorized = false;
+
+        // Livello 1: Permesso Org
+        if (permissionService.hasPermission(authUserId, "delete_file_organization")) {
+            authorized = true;
+        }
+        // Livello 2: Permesso Lista (se applicabile)
+        else if (fileTarget.getList() != null && permissionService.hasPermission(authUserId, "delete_file_list")) {
+            if (permissionService.hasPermissionOnList(authUserId, fileTarget.getList().getId(), "delete_file_list")) {
+                authorized = true;
+            }
+        }
+        // Livello 3: Proprietario
+        else if (fileTarget.getUser().getId().equals(authUserId)) {
+            authorized = true;
+        }
+
+        if (!authorized) {
+            throw new ForbiddenException("Non hai i permessi per eliminare questo file.");
+        }
+
+        // 4. Cancellazione
+        String pathToDelete = fileTarget.getFilePath();
+
+        // 4.1 Rimuoviamo il record dal DB
+        fileRepository.delete(fileTarget);
+
+        // 4.2 Rimuoviamo il file fisico (StorageService)
+        // Usiamo un blocco try-catch interno per non fare rollback del DB se il file fisico
+        // è già sparito o il disco ha un problema momentaneo (evita file orfani nel DB)
+        try {
+            storageService.delete(pathToDelete);
+        } catch (Exception e) {
+            log.warn("Cancellazione fisica fallita per il percorso: {}. Errore: {}", pathToDelete, e.getMessage());
+            // Nota: Il record DB è già segnato per l'eliminazione al commit della transazione.
+        }
     }
 }

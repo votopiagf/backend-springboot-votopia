@@ -1,4 +1,4 @@
-package com.votopia.votopiabackendspringboot.services;
+package com.votopia.votopiabackendspringboot.services.files;
 
 import com.votopia.votopiabackendspringboot.dtos.file.FileSummaryDto;
 import io.micrometer.common.lang.Nullable;
@@ -33,4 +33,26 @@ public interface FileService {
      * @throws NotFoundException   Se la lista o la categoria specificata non esistono nell'Org dell'utente.
      */
     FileSummaryDto uploadFile(MultipartFile file, @Nullable Long listId, Long categoryId, Long authUserId);
+
+    /**
+     * Esegue la rimozione completa di un file dal sistema.
+     * <p>
+     * La procedura segue una gerarchia di autorizzazione rigorosa:
+     * <ol>
+     * <li><b>Gestore Org:</b> Utenti con permesso {@code delete_file_organization} possono eliminare qualsiasi file.</li>
+     * <li><b>Gestore Lista:</b> Utenti con permesso {@code delete_file_list} possono eliminare file associati alla loro lista.</li>
+     * <li><b>Proprietario:</b> L'utente che ha effettuato l'upload può sempre eliminare i propri file.</li>
+     * </ol>
+     * </p>
+     * <p>
+     * L'operazione è transazionale sul database: il file fisico viene rimosso dallo storage
+     * solo se la cancellazione del record DB va a buon fine.
+     * </p>
+     *
+     * @param fileId     ID univoco del file da rimuovere.
+     * @param authUserId ID dell'utente che richiede l'operazione.
+     * @throws NotFoundException  Se il file non esiste.
+     * @throws ForbiddenException Se l'utente non ha i permessi o tenta di accedere a file di altre Org.
+     */
+    void deleteFile(Long fileId, Long authUserId);
 }

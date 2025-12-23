@@ -1,4 +1,4 @@
-package com.votopia.votopiabackendspringboot.services.impl;
+package com.votopia.votopiabackendspringboot.services.impl.auth;
 
 import com.votopia.votopiabackendspringboot.dtos.auth.LoginRequestDto;
 import com.votopia.votopiabackendspringboot.dtos.auth.LoginSummaryDto;
@@ -8,11 +8,10 @@ import com.votopia.votopiabackendspringboot.entities.User;
 import com.votopia.votopiabackendspringboot.exceptions.UnauthorizedException;
 import com.votopia.votopiabackendspringboot.repositories.OrganizationRepository;
 import com.votopia.votopiabackendspringboot.repositories.UserRepository;
-import com.votopia.votopiabackendspringboot.services.AuthService;
-import com.votopia.votopiabackendspringboot.services.JwtService; // Importa l'interfaccia
+import com.votopia.votopiabackendspringboot.services.auth.AuthService;
+import com.votopia.votopiabackendspringboot.services.auth.JwtService; // Importa l'interfaccia
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

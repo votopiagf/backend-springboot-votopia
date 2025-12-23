@@ -1,4 +1,4 @@
-package com.votopia.votopiabackendspringboot.services;
+package com.votopia.votopiabackendspringboot.services.files;
 
 public interface StorageService {
     /**
