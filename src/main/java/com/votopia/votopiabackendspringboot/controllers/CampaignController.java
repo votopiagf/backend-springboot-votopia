@@ -2,11 +2,13 @@ package com.votopia.votopiabackendspringboot.controllers;
 
 import com.votopia.votopiabackendspringboot.config.CustomUserDetails;
 import com.votopia.votopiabackendspringboot.dtos.SuccessResponse;
+import com.votopia.votopiabackendspringboot.dtos.campaign.CampaignAddCandidateDto;
 import com.votopia.votopiabackendspringboot.dtos.campaign.CampaignCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.campaign.CampaignSummaryDto;
 import com.votopia.votopiabackendspringboot.services.CampaignService;
 import io.micrometer.common.lang.Nullable;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -90,8 +92,23 @@ public class CampaignController {
         );
     }
 
+    @Operation(
+            summary = "Ottieni dettagli campagna",
+            description = "Recupera le informazioni dettagliate di una singola campagna. " +
+                    "L'accesso è consentito se l'utente è Admin dell'Organizzazione, " +
+                    "se ha permessi sulla Lista, o se è un Candidato della campagna stessa."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dettagli campagna recuperati con successo"),
+            @ApiResponse(responseCode = "403", description = "Accesso negato: non hai i permessi o la campagna appartiene a un'altra Org"),
+            @ApiResponse(responseCode = "404", description = "Campagna non trovata")
+    })
     @GetMapping("/info/")
-    public ResponseEntity<SuccessResponse<CampaignSummaryDto>> get(@RequestParam(value = "target_campaign_id") Long targetCampaignId, Authentication authentication){
+    public ResponseEntity<SuccessResponse<CampaignSummaryDto>> get(
+            @Parameter(description = "ID della campagna da visualizzare", required = true)
+            @RequestParam(value = "target_campaign_id") Long targetCampaignId,
+            Authentication authentication) {
+
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         Long userId = userDetails.getId();
 
@@ -105,5 +122,104 @@ public class CampaignController {
                         System.currentTimeMillis()
                 )
         );
+    }
+
+    @Operation(
+            summary = "Aggiungi candidato alla campagna",
+            description = "Associa un candidato esistente a una campagna. " +
+                    "È possibile specificare opzionalmente la posizione in lista. " +
+                    "Richiede permessi di gestione a livello Org o Lista."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Candidato associato con successo"),
+            @ApiResponse(responseCode = "400", description = "Il candidato è già presente nella campagna"),
+            @ApiResponse(responseCode = "403", description = "Permessi insufficienti per aggiungere candidati"),
+            @ApiResponse(responseCode = "404", description = "Campagna o Candidato non trovati")
+    })
+    @PostMapping("/add-candidate/")
+    public ResponseEntity<SuccessResponse<Void>> addCandidate(
+            @RequestBody @Valid CampaignAddCandidateDto dto,
+            Authentication authentication) {
+
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getId();
+
+        campaignService.addCandidateInCampaign(dto, userId);
+        return ResponseEntity.ok(
+                new SuccessResponse<>(
+                        true,
+                        HttpStatus.OK.value(),
+                        null,
+                        "Candidato aggiunto con successo",
+                        System.currentTimeMillis()
+                )
+        );
+    }
+
+    @Operation(
+            summary = "Rimuovi candidato",
+            description = "Elimina l'associazione tra un candidato e una campagna. " +
+                    "Richiede privilegi di gestione sulla lista o sull'organizzazione. " +
+                    "L'operazione è irreversibile e rimuove anche la posizione occupata in lista."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Candidato rimosso con successo"),
+            @ApiResponse(responseCode = "403", description = "Accesso negato: permessi insufficienti o violazione isolamento Org"),
+            @ApiResponse(responseCode = "404", description = "Associazione non trovata: il candidato non è presente in questa campagna")
+    })
+    @DeleteMapping("/delete-candidate/")
+    public ResponseEntity<SuccessResponse<Void>> deleteCandidate(
+            @Parameter(description = "ID del candidato da escludere", required = true)
+            @RequestParam(value = "candidate_id") Long candidateId,
+
+            @Parameter(description = "ID della campagna di riferimento", required = true)
+            @RequestParam(value = "campaign_id") Long campaignId,
+            Authentication authentication
+    ){
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getId();
+
+        campaignService.removeCandidateFromCampaign(candidateId, campaignId, userId);
+        return ResponseEntity.ok(
+                new SuccessResponse<>(
+                        true,
+                        HttpStatus.OK.value(),
+                        null,
+                        "Candidato rimosso con successo",
+                        System.currentTimeMillis()
+                )
+        );
+    }
+
+    @Operation(
+            summary = "Elimina una campagna",
+            description = "Rimuove permanentemente una campagna dal database. " +
+                    "L'operazione comporta la cancellazione automatica di tutti i candidati associati " +
+                    "e delle loro posizioni in lista. Questa azione non è reversibile."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Campagna e dati correlati eliminati con successo"
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Accesso negato: permessi insufficienti o tentativo di accesso cross-org"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Campagna non trovata"
+            )
+    })
+    @DeleteMapping("/delete/")
+    public ResponseEntity<SuccessResponse<Void>> deleteCampaign(
+            @Parameter(description = "ID della campagna da eliminare", required = true)
+            @RequestParam(value = "campaing_id") Long campaignId,
+            Authentication authentication) {
+
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        campaignService.deleteCampaign(campaignId, userDetails.getId());
+
+        return ResponseEntity.ok(new SuccessResponse<>(true, 200, null, "Campagna eliminata con successo", System.currentTimeMillis()));
     }
 }

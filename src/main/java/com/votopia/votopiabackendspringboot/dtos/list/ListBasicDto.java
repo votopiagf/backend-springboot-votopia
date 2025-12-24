@@ -1,6 +1,6 @@
 package com.votopia.votopiabackendspringboot.dtos.list;
 
-import com.votopia.votopiabackendspringboot.entities.List;
+import com.votopia.votopiabackendspringboot.entities.lists.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

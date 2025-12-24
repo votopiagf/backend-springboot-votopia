@@ -1,8 +1,6 @@
 package com.votopia.votopiabackendspringboot.dtos.user;
 
-import com.votopia.votopiabackendspringboot.entities.List;
 import lombok.*;
-import org.springframework.lang.NonNullApi;
 
 import java.util.Set;
 

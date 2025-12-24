@@ -1,6 +1,6 @@
 package com.votopia.votopiabackendspringboot.dtos.organization;
 
-import com.votopia.votopiabackendspringboot.entities.Organization;
+import com.votopia.votopiabackendspringboot.entities.organizations.Organization;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;

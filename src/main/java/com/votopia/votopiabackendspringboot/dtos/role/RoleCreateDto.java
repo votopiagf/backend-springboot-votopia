@@ -1,6 +1,5 @@
 package com.votopia.votopiabackendspringboot.dtos.role;
 
-import com.votopia.votopiabackendspringboot.entities.Permission;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NonNull;

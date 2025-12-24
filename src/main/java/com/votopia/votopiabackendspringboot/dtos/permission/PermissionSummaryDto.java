@@ -1,6 +1,6 @@
 package com.votopia.votopiabackendspringboot.dtos.permission;
 
-import com.votopia.votopiabackendspringboot.entities.Permission;
+import com.votopia.votopiabackendspringboot.entities.auth.Permission;
 import lombok.*;
 
 @Data

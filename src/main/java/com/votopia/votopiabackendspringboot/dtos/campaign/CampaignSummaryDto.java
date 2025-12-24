@@ -1,6 +1,6 @@
 package com.votopia.votopiabackendspringboot.dtos.campaign;
 
-import com.votopia.votopiabackendspringboot.entities.Campaign;
+import com.votopia.votopiabackendspringboot.entities.campaigns.Campaign;
 import java.time.LocalDate;
 
 /**

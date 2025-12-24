@@ -1,6 +1,6 @@
 package com.votopia.votopiabackendspringboot.config;
 
-import com.votopia.votopiabackendspringboot.entities.User;
+import com.votopia.votopiabackendspringboot.entities.auth.User;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

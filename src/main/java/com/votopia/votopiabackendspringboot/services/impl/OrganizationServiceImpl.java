@@ -3,7 +3,7 @@ package com.votopia.votopiabackendspringboot.services.impl;
 import com.votopia.votopiabackendspringboot.dtos.organization.OrganizationSummaryDto;
 import com.votopia.votopiabackendspringboot.exceptions.BadRequestException;
 import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
-import com.votopia.votopiabackendspringboot.repositories.OrganizationRepository;
+import com.votopia.votopiabackendspringboot.repositories.organizations.OrganizationRepository;
 import com.votopia.votopiabackendspringboot.services.OrganizationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

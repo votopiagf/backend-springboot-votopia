@@ -1,6 +1,6 @@
 package com.votopia.votopiabackendspringboot.services.impl.auth;
 
-import com.votopia.votopiabackendspringboot.entities.User;
+import com.votopia.votopiabackendspringboot.entities.auth.User;
 import com.votopia.votopiabackendspringboot.services.auth.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

@@ -3,15 +3,15 @@ package com.votopia.votopiabackendspringboot.services.impl.auth;
 import com.votopia.votopiabackendspringboot.dtos.user.UserCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserUpdateDto;
-import com.votopia.votopiabackendspringboot.entities.List;
-import com.votopia.votopiabackendspringboot.entities.Role;
-import com.votopia.votopiabackendspringboot.entities.User;
+import com.votopia.votopiabackendspringboot.entities.lists.List;
+import com.votopia.votopiabackendspringboot.entities.auth.Role;
+import com.votopia.votopiabackendspringboot.entities.auth.User;
 import com.votopia.votopiabackendspringboot.exceptions.ConflictException;
 import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
-import com.votopia.votopiabackendspringboot.repositories.ListRepository;
-import com.votopia.votopiabackendspringboot.repositories.OrganizationRepository;
-import com.votopia.votopiabackendspringboot.repositories.RoleRepository;
-import com.votopia.votopiabackendspringboot.repositories.UserRepository;
+import com.votopia.votopiabackendspringboot.repositories.lists.ListRepository;
+import com.votopia.votopiabackendspringboot.repositories.organizations.OrganizationRepository;
+import com.votopia.votopiabackendspringboot.repositories.auth.RoleRepository;
+import com.votopia.votopiabackendspringboot.repositories.auth.UserRepository;
 import com.votopia.votopiabackendspringboot.services.auth.UserService;
 import com.votopia.votopiabackendspringboot.services.auth.PermissionService;
 import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
@@ -94,7 +94,7 @@ public class UserServiceImpl implements UserService {
                     listRepository.findByIdAndOrgId(id, orgId);
 
             if (optList.isPresent()) {
-                com.votopia.votopiabackendspringboot.entities.List targetList = optList.get();
+                List targetList = optList.get();
 
                 // Inizializzazione di sicurezza se il Set è null
                 if (targetList.getUsers() == null) {

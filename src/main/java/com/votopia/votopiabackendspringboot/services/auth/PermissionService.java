@@ -1,8 +1,8 @@
 package com.votopia.votopiabackendspringboot.services.auth;
 
 import com.votopia.votopiabackendspringboot.dtos.permission.PermissionSummaryDto;
-import com.votopia.votopiabackendspringboot.entities.User;
-import com.votopia.votopiabackendspringboot.entities.List; // La tua entità
+import com.votopia.votopiabackendspringboot.entities.auth.User;
+import com.votopia.votopiabackendspringboot.entities.lists.List; // La tua entità
 
 import java.util.Set;
 

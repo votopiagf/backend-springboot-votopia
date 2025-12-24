@@ -5,16 +5,16 @@ import com.votopia.votopiabackendspringboot.dtos.permission.PermissionSummaryDto
 import com.votopia.votopiabackendspringboot.dtos.role.RoleCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleUpdateDto;
-import com.votopia.votopiabackendspringboot.entities.List;
-import com.votopia.votopiabackendspringboot.entities.Permission;
-import com.votopia.votopiabackendspringboot.entities.Role;
-import com.votopia.votopiabackendspringboot.entities.User;
+import com.votopia.votopiabackendspringboot.entities.lists.List;
+import com.votopia.votopiabackendspringboot.entities.auth.Permission;
+import com.votopia.votopiabackendspringboot.entities.auth.Role;
+import com.votopia.votopiabackendspringboot.entities.auth.User;
 import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
 import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
-import com.votopia.votopiabackendspringboot.repositories.ListRepository;
-import com.votopia.votopiabackendspringboot.repositories.PermissionRepository;
-import com.votopia.votopiabackendspringboot.repositories.RoleRepository;
-import com.votopia.votopiabackendspringboot.repositories.UserRepository;
+import com.votopia.votopiabackendspringboot.repositories.lists.ListRepository;
+import com.votopia.votopiabackendspringboot.repositories.auth.PermissionRepository;
+import com.votopia.votopiabackendspringboot.repositories.auth.RoleRepository;
+import com.votopia.votopiabackendspringboot.repositories.auth.UserRepository;
 import com.votopia.votopiabackendspringboot.services.auth.PermissionService;
 import com.votopia.votopiabackendspringboot.services.auth.RoleService;
 import io.micrometer.common.lang.Nullable;
@@ -209,7 +209,7 @@ public class RoleServiceImpl implements RoleService {
         // 3. CASO 2: Filtro per Lista Specifica
         else {
             // Verifica esistenza e appartenenza della Lista
-            com.votopia.votopiabackendspringboot.entities.List targetList = listRepository.findById(listId)
+            List targetList = listRepository.findById(listId)
                     .orElseThrow(() -> new NotFoundException("Lista con ID " + listId + " non trovata."));
 
             if (!targetList.getOrg().getId().equals(orgId)) {

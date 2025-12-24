@@ -2,7 +2,7 @@ package com.votopia.votopiabackendspringboot.dtos.user;
 
 import com.votopia.votopiabackendspringboot.dtos.organization.OrganizationSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleSummaryDto;
-import com.votopia.votopiabackendspringboot.entities.User;
+import com.votopia.votopiabackendspringboot.entities.auth.User;
 import lombok.*;
 
 import java.util.Set;

@@ -1,6 +1,6 @@
 package com.votopia.votopiabackendspringboot.services.auth;
 
-import com.votopia.votopiabackendspringboot.entities.User;
+import com.votopia.votopiabackendspringboot.entities.auth.User;
 
 public interface JwtService {
     String generateToken(User user);

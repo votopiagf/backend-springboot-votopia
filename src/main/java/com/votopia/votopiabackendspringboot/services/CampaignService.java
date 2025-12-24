@@ -1,12 +1,17 @@
 package com.votopia.votopiabackendspringboot.services;
 
+import com.votopia.votopiabackendspringboot.dtos.campaign.CampaignAddCandidateDto;
 import com.votopia.votopiabackendspringboot.dtos.campaign.CampaignCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.campaign.CampaignSummaryDto;
+import com.votopia.votopiabackendspringboot.entities.campaigns.Campaign;
+import com.votopia.votopiabackendspringboot.entities.campaigns.CandidateCampaign;
+import com.votopia.votopiabackendspringboot.entities.campaigns.CandidatePositionCampaign;
 import com.votopia.votopiabackendspringboot.exceptions.BadRequestException;
 import com.votopia.votopiabackendspringboot.exceptions.ConflictException;
 import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
 import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
 import io.micrometer.common.lang.Nullable;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.Set;
 
@@ -80,4 +85,76 @@ public interface CampaignService {
      * nessuno dei criteri di autorizzazione sopra elencati.
      */
     CampaignSummaryDto get(Long campaignId, Long authUserId);
+
+    /**
+     * Associa un candidato esistente a una campagna elettorale, gestendo opzionalmente la sua posizione.
+     * <p>
+     * Il metodo esegue i seguenti controlli di integrità e sicurezza:
+     * <ol>
+     * <li>Verifica l'esistenza dell'utente autenticato e della campagna.</li>
+     * <li>Assicura che la campagna appartenga all'organizzazione dell'utente (Isolamento Org).</li>
+     * <li>Verifica i permessi (globale {@code add_candidate_in_campaign_organization}
+     * o specifico per lista {@code add_candidate_in_campaign_list}).</li>
+     * <li>Controlla che il candidato non sia già associato alla campagna (Prevenzione duplicati).</li>
+     * </ol>
+     * </p>
+     * <p>
+     * Se nel {@code dto} è presente una {@code positionInList}, viene creato e persistito un record
+     * nell'entità {@link CandidatePositionCampaign} collegato all'associazione appena creata.
+     * </p>
+     *
+     * @param dto         Oggetto di trasporto dati contenente l'ID della campagna, l'ID del candidato
+     * e l'eventuale posizione in lista.
+     * @param authUserId  ID dell'utente amministratore/gestore che esegue l'operazione.
+     * @throws NotFoundException    Se la campagna o il candidato specificati non esistono.
+     * @throws ForbiddenException   Se l'utente non ha i permessi necessari o se tenta di operare
+     * su una campagna di un'altra organizzazione.
+     * @throws BadRequestException  Se il candidato è già presente nella campagna indicata.
+     */
+    void addCandidateInCampaign(@NotNull CampaignAddCandidateDto dto, Long authUserId);
+
+    /**
+     * Rimuove un candidato da una campagna elettorale esistente.
+     * <p>
+     * L'operazione segue questo flusso di validazione:
+     * <ol>
+     * <li>Verifica l'esistenza dell'utente operatore e della campagna.</li>
+     * <li>Assicura l'isolamento multi-tenant controllando che la campagna appartenga all'organizzazione dell'operatore.</li>
+     * <li>Verifica i privilegi di gestione ({@code manager_candidate_in_campaign_organization} o {@code manager_candidate_in_campaign_list}).</li>
+     * <li>Identifica l'associazione specifica {@link CandidateCampaign} tra il candidato e la campagna.</li>
+     * </ol>
+     * </p>
+     * <p><b>Effetti collaterali:</b> La rimozione comporta la cancellazione automatica di eventuali record
+     * di posizione associati nella tabella {@code candidate_position_campaign}.</p>
+     *
+     * @param candidateId ID del candidato da rimuovere.
+     * @param campaignId  ID della campagna da cui rimuovere il candidato.
+     * @param authUserId  ID dell'utente autenticato che richiede l'operazione.
+     * @throws NotFoundException    Se la campagna non esiste o se il candidato non è associato ad essa.
+     * @throws ForbiddenException   Se l'operatore non ha i permessi o tenta di accedere a una campagna fuori dalla propria Org.
+     */
+    void removeCandidateFromCampaign(@NotNull Long candidateId, @NotNull Long campaignId, @NotNull Long authUserId);
+
+    /**
+     * Elimina definitivamente una campagna e tutte le entità correlate dal sistema.
+     * <p>
+     * Il metodo garantisce l'integrità referenziale del database rimuovendo manualmente
+     * le dipendenze in ordine gerarchico inverso (Nipoti -> Figli -> Padre):
+     * <ol>
+     * <li>Recupera ed elimina tutte le posizioni in lista ({@link CandidatePositionCampaign})
+     * associate ai candidati della campagna.</li>
+     * <li>Rimuove le associazioni intermedie tra candidati e campagna ({@link CandidateCampaign}).</li>
+     * <li>Elimina infine l'entità {@link Campaign}.</li>
+     * </ol>
+     * </p>
+     * <p><b>Sicurezza:</b> Verifica che la campagna appartenga all'organizzazione dell'utente
+     * e che quest'ultimo possieda i permessi {@code delete_campaign_organization} o {@code delete_campaign_list}.</p>
+     *
+     * @param campaignId ID della campagna da eliminare.
+     * @param authUserId ID dell'utente che richiede l'operazione.
+     * @throws NotFoundException    Se l'utente o la campagna non esistono.
+     * @throws ForbiddenException   Se l'utente non ha i permessi o tenta di eliminare
+     * una campagna di un'altra organizzazione.
+     */
+    void deleteCampaign(@NotNull Long campaignId, Long authUserId);
 }

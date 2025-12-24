@@ -3,15 +3,15 @@ package com.votopia.votopiabackendspringboot.services.impl;
 import com.votopia.votopiabackendspringboot.dtos.list.ListCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.list.ListSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.list.ListUpdateDto;
-import com.votopia.votopiabackendspringboot.entities.List;
-import com.votopia.votopiabackendspringboot.entities.Organization;
-import com.votopia.votopiabackendspringboot.entities.User;
+import com.votopia.votopiabackendspringboot.entities.lists.List;
+import com.votopia.votopiabackendspringboot.entities.organizations.Organization;
+import com.votopia.votopiabackendspringboot.entities.auth.User;
 import com.votopia.votopiabackendspringboot.exceptions.BadRequestException;
 import com.votopia.votopiabackendspringboot.exceptions.ConflictException;
 import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
 import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
-import com.votopia.votopiabackendspringboot.repositories.ListRepository;
-import com.votopia.votopiabackendspringboot.repositories.UserRepository;
+import com.votopia.votopiabackendspringboot.repositories.lists.ListRepository;
+import com.votopia.votopiabackendspringboot.repositories.auth.UserRepository;
 import com.votopia.votopiabackendspringboot.services.ListService;
 import com.votopia.votopiabackendspringboot.services.auth.PermissionService;
 import jakarta.transaction.Transactional;
@@ -74,7 +74,7 @@ public class ListServiceImpl implements ListService {
         validateColor(dto.colorSecondary(), "secondario");
 
         // 5. Creazione Entità
-        List newList = new com.votopia.votopiabackendspringboot.entities.List();
+        List newList = new List();
         newList.setName(dto.name().trim());
         newList.setOrg(org);
         newList.setDescription(dto.description() != null ? dto.description().trim() : "");
@@ -86,7 +86,7 @@ public class ListServiceImpl implements ListService {
         // newList.setLogoFileId(dto.logoFileId()); 
 
         try {
-            com.votopia.votopiabackendspringboot.entities.List savedList = listRepository.save(newList);
+            List savedList = listRepository.save(newList);
             log.info("Nuova lista creata: {} per l'Org: {}", savedList.getName(), org.getName());
             return new ListSummaryDto(savedList);
         } catch (DataIntegrityViolationException e) {
@@ -107,7 +107,7 @@ public class ListServiceImpl implements ListService {
         User authUser = userRepository.findById(authUserId)
                 .orElseThrow(() -> new NotFoundException("Utente autenticato non trovato"));
 
-        com.votopia.votopiabackendspringboot.entities.List listTarget = listRepository.findById(dto.listId())
+        List listTarget = listRepository.findById(dto.listId())
                 .orElseThrow(() -> new NotFoundException("Lista con ID " + dto.listId() + " non trovata"));
 
         // 2. Controllo Organizzazione (Multi-tenancy)

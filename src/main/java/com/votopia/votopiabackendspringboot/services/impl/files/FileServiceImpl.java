@@ -1,16 +1,17 @@
 package com.votopia.votopiabackendspringboot.services.impl.files;
 
 import com.votopia.votopiabackendspringboot.dtos.file.FileSummaryDto;
-import com.votopia.votopiabackendspringboot.entities.File;
-import com.votopia.votopiabackendspringboot.entities.Organization;
-import com.votopia.votopiabackendspringboot.entities.User;
+import com.votopia.votopiabackendspringboot.entities.files.File;
+import com.votopia.votopiabackendspringboot.entities.lists.List;
+import com.votopia.votopiabackendspringboot.entities.organizations.Organization;
+import com.votopia.votopiabackendspringboot.entities.auth.User;
 import com.votopia.votopiabackendspringboot.exceptions.BadRequestException;
 import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
 import com.votopia.votopiabackendspringboot.exceptions.InternalServerException;
 import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
-import com.votopia.votopiabackendspringboot.repositories.FileRepository;
-import com.votopia.votopiabackendspringboot.repositories.ListRepository;
-import com.votopia.votopiabackendspringboot.repositories.UserRepository;
+import com.votopia.votopiabackendspringboot.repositories.files.FileRepository;
+import com.votopia.votopiabackendspringboot.repositories.lists.ListRepository;
+import com.votopia.votopiabackendspringboot.repositories.auth.UserRepository;
 import com.votopia.votopiabackendspringboot.services.files.FileService;
 import com.votopia.votopiabackendspringboot.services.auth.PermissionService;
 import com.votopia.votopiabackendspringboot.services.files.StorageService;
@@ -59,7 +60,7 @@ public class FileServiceImpl implements FileService {
         boolean canOrg = permissionService.hasPermission(authUserId, "add_file_organization");
         boolean canList = permissionService.hasPermission(authUserId, "add_file_list");
 
-        com.votopia.votopiabackendspringboot.entities.List listTarget = null;
+        List listTarget = null;
         if (listId != null) {
             listTarget = listRepository.findByIdAndOrgId(listId, org.getId())
                     .orElseThrow(() -> new NotFoundException("Lista non trovata"));

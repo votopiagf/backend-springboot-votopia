@@ -3,11 +3,11 @@ package com.votopia.votopiabackendspringboot.services.impl.auth;
 import com.votopia.votopiabackendspringboot.dtos.auth.LoginRequestDto;
 import com.votopia.votopiabackendspringboot.dtos.auth.LoginSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserSummaryDto;
-import com.votopia.votopiabackendspringboot.entities.Organization;
-import com.votopia.votopiabackendspringboot.entities.User;
+import com.votopia.votopiabackendspringboot.entities.organizations.Organization;
+import com.votopia.votopiabackendspringboot.entities.auth.User;
 import com.votopia.votopiabackendspringboot.exceptions.UnauthorizedException;
-import com.votopia.votopiabackendspringboot.repositories.OrganizationRepository;
-import com.votopia.votopiabackendspringboot.repositories.UserRepository;
+import com.votopia.votopiabackendspringboot.repositories.organizations.OrganizationRepository;
+import com.votopia.votopiabackendspringboot.repositories.auth.UserRepository;
 import com.votopia.votopiabackendspringboot.services.auth.AuthService;
 import com.votopia.votopiabackendspringboot.services.auth.JwtService; // Importa l'interfaccia
 import lombok.RequiredArgsConstructor;

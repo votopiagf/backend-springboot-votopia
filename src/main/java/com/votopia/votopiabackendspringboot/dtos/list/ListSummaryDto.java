@@ -1,7 +1,6 @@
 package com.votopia.votopiabackendspringboot.dtos.list;
 
-import com.votopia.votopiabackendspringboot.entities.List;
-import java.time.LocalDateTime;
+import com.votopia.votopiabackendspringboot.entities.lists.List;
 
 /**
  * DTO per la visualizzazione sintetica di una Lista.

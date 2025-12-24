@@ -1,6 +1,6 @@
 package com.votopia.votopiabackendspringboot.dtos.file;
 
-import com.votopia.votopiabackendspringboot.entities.File;
+import com.votopia.votopiabackendspringboot.entities.files.File;
 import java.time.LocalDateTime;
 
 /**
