@@ -2,6 +2,7 @@ package com.votopia.votopiabackendspringboot.entities.campaigns;
 
 import com.votopia.votopiabackendspringboot.entities.files.File;
 import com.votopia.votopiabackendspringboot.entities.auth.User;
+import com.votopia.votopiabackendspringboot.entities.lists.List;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,7 +16,12 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "candidates")
+@Table(
+        name = "candidates",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"list_id", "user_id"})
+        }
+)
 @Getter
 @Setter
 public class Candidate {
@@ -24,13 +30,17 @@ public class Candidate {
     private Long id;
 
     @ManyToOne(optional = false)
+    @JoinColumn(name = "list_id", nullable = false)
+    private List list;
+
+    @ManyToOne(optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(name = "school_class", length = 10)
     private String schoolClass;
 
-    @ManyToOne()
+    @ManyToOne
     @JoinColumn(name = "photo_file_id")
     private File photoFileId;
 

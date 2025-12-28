@@ -3,6 +3,7 @@ package com.votopia.votopiabackendspringboot.services.impl.auth;
 import com.votopia.votopiabackendspringboot.dtos.permission.PermissionSummaryDto;
 import com.votopia.votopiabackendspringboot.entities.lists.List;
 import com.votopia.votopiabackendspringboot.entities.auth.User;
+import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
 import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
 import com.votopia.votopiabackendspringboot.repositories.lists.ListRepository;
 import com.votopia.votopiabackendspringboot.repositories.auth.UserRepository;
@@ -87,5 +88,12 @@ public class PermissionServiceImpl implements PermissionService {
         // Controlliamo se per almeno una lista del target, l'admin ha il permesso richiesto
         return target.getLists().stream()
                 .anyMatch(list -> hasPermissionOnList(authUserId, list.getId(), permissionCode));
+    }
+
+    @Override
+    public void validatePermission(Long authUserId, Long listId, String orgPerm, String listPerm, String errorMsg) {
+        boolean hasAccess = this.hasPermission(authUserId, orgPerm) ||
+                this.hasPermissionOnList(authUserId, listId, listPerm);
+        if (!hasAccess) throw new ForbiddenException(errorMsg);
     }
 }

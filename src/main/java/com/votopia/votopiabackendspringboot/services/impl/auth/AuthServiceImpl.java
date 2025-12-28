@@ -5,6 +5,8 @@ import com.votopia.votopiabackendspringboot.dtos.auth.LoginSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserSummaryDto;
 import com.votopia.votopiabackendspringboot.entities.organizations.Organization;
 import com.votopia.votopiabackendspringboot.entities.auth.User;
+import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
+import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
 import com.votopia.votopiabackendspringboot.exceptions.UnauthorizedException;
 import com.votopia.votopiabackendspringboot.repositories.organizations.OrganizationRepository;
 import com.votopia.votopiabackendspringboot.repositories.auth.UserRepository;
@@ -54,5 +56,14 @@ public class AuthServiceImpl implements AuthService {
 
         // 5. Restituiamo il DTO
         return new LoginSummaryDto(token, new UserSummaryDto(user));
+    }
+
+    public User getAuthenticatedUser(Long authUserId) {
+        User user = userRepository.findById(authUserId)
+                .orElseThrow(() -> new NotFoundException("Utente autenticato non trovato"));
+        if (user.getOrg() == null) {
+            throw new ForbiddenException("L'utente non è associato ad alcuna Organizzazione");
+        }
+        return user;
     }
 }

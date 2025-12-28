@@ -9,9 +9,9 @@ import com.votopia.votopiabackendspringboot.entities.auth.User;
 import com.votopia.votopiabackendspringboot.exceptions.ConflictException;
 import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
 import com.votopia.votopiabackendspringboot.repositories.lists.ListRepository;
-import com.votopia.votopiabackendspringboot.repositories.organizations.OrganizationRepository;
 import com.votopia.votopiabackendspringboot.repositories.auth.RoleRepository;
 import com.votopia.votopiabackendspringboot.repositories.auth.UserRepository;
+import com.votopia.votopiabackendspringboot.services.auth.AuthService;
 import com.votopia.votopiabackendspringboot.services.auth.UserService;
 import com.votopia.votopiabackendspringboot.services.auth.PermissionService;
 import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
@@ -22,46 +22,42 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Implementazione del servizio UserService.
+ * Gestisce la registrazione, la visualizzazione, l'aggiornamento e la cancellazione (soft-delete) degli utenti.
+ */
 @Slf4j
 @Service
 public class UserServiceImpl implements UserService {
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private ListRepository listRepository;
-    @Autowired
-    private OrganizationRepository organizationRepository;
-    @Autowired
-    private RoleRepository roleRepository;
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-    @Autowired
-    private  PermissionService permissionService; // Ora è iniettato correttamente
+
+    @Autowired private UserRepository userRepository;
+    @Autowired private ListRepository listRepository;
+    @Autowired private RoleRepository roleRepository;
+    @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private AuthService authService;
+    @Autowired private PermissionService permissionService;
 
     @Override
     @Transactional
     public UserSummaryDto register(UserCreateDto dto, Long authUserId) {
-        log.info("Inizio registrazione nuovo utente: {} da parte di admin ID: {}", dto.getEmail(), authUserId);
+        User authUser = authService.getAuthenticatedUser(authUserId);
 
-        // 1. Recupero utente autenticato
-        User authUser = userRepository.findById(authUserId)
-                .orElseThrow(() -> new NotFoundException("Utente autenticato non trovato"));
-
-        // 2. Controllo Permessi
+        // 1. Controllo Permessi
         boolean canOrg = permissionService.hasPermission(authUserId, "create_user_for_organization");
         boolean canList = permissionService.hasPermission(authUserId, "create_user_for_list");
 
         if (!canOrg && !canList) {
             throw new ForbiddenException("Non hai i permessi per creare utenti");
         }
-        boolean existingUser = userRepository.existsByEmailAndOrgAndDeletedFalse(dto.getEmail(), authUser.getOrg());
-        if (existingUser) throw new ConflictException("Utente con questa email già esiste nell'organizzazione");
 
-        // 3. Creazione Utente Base
+        if (userRepository.existsByEmailAndOrgAndDeletedFalse(dto.getEmail(), authUser.getOrg())) {
+            throw new ConflictException("Utente con questa email già esiste nell'organizzazione");
+        }
+
+        // 2. Creazione Utente Base
         User newUser = new User();
         newUser.setName(dto.getName());
         newUser.setSurname(dto.getSurname());
@@ -69,312 +65,194 @@ public class UserServiceImpl implements UserService {
         newUser.setPassword(passwordEncoder.encode(dto.getPassword()));
         newUser.setOrg(authUser.getOrg());
 
-        // Salviamo una prima volta per generare l'ID necessario alle relazioni
+        // Salviamo per avere l'ID
         newUser = userRepository.save(newUser);
 
-        // 4. Gestione Liste (Caso Org vs Caso List)
+        // 3. Gestione Liste
         if (canOrg) {
             processOrgLists(dto.getListsId(), newUser, authUser.getOrg().getId());
         } else {
-            processRestrictedList(dto.getListsId(), newUser, authUser);
+            processRestrictedList(dto.getListsId(), newUser, authUserId);
         }
 
-        // 5. Assegnazione Ruoli con controllo Livello (Hierarchy)
-        processRoles(dto.getRolesId(), newUser, authUser);
+        // 4. Gestione Ruoli
+        processRoles(dto.getRolesId(), newUser, authUserId);
 
-        // Salvataggio finale con relazioni
+        log.info("Utente registrato con successo: {} (ID: {})", newUser.getEmail(), newUser.getId());
         return new UserSummaryDto(userRepository.save(newUser));
     }
 
-    private void processOrgLists(Set<Long> listIds, User newUser, Long orgId) {
-        if (listIds == null) return;
-        for (Long id : listIds) {
-            // Specifichiamo il tipo completo qui per non lasciare dubbi al compilatore
-            Optional<List> optList =
-                    listRepository.findByIdAndOrgId(id, orgId);
-
-            if (optList.isPresent()) {
-                List targetList = optList.get();
-
-                // Inizializzazione di sicurezza se il Set è null
-                if (targetList.getUsers() == null) {
-                    targetList.setUsers(new java.util.HashSet<>());
-                }
-
-                targetList.getUsers().add(newUser);
-                // Salva le modifiche
-                listRepository.save(targetList);
-            }
-        }
-    }
-
-    private void processRestrictedList(Set<Long> listIds, User newUser, User authUser) {
-        if (listIds == null || listIds.size() != 1) {
-            throw new ForbiddenException("Puoi creare utenti in una sola lista alla volta");
-        }
-
-        Long targetId = listIds.iterator().next();
-
-        boolean hasPermInList = authUser.getRoles().stream()
-                .anyMatch(r -> r.getList() != null &&
-                        r.getList().getId().equals(targetId) &&
-                        r.getPermissions().stream().anyMatch(p -> p.getName().equals("create_user_for_list")));
-
-        if (!hasPermInList) {
-            throw new ForbiddenException("Non hai permessi su questa lista");
-        }
-
-        listRepository.findById(targetId).ifPresent(l -> l.getUsers().add(newUser));
-    }
-
-    private void processRoles(Set<Long> roleIds, User newUser, User authUser) {
-        if (roleIds == null) return;
-        for (Long roleId : roleIds) {
-            Role role = roleRepository.findById(roleId).orElse(null);
-            if (role == null) continue;
-
-            if (role.isOrgLevel()) {
-                int maxLevel = authUser.getRoles().stream()
-                        .filter(Role::isOrgLevel)
-                        .mapToInt(Role::getLevel).max().orElse(0);
-                if (role.getLevel() <= maxLevel) newUser.getRoles().add(role);
-            } else if (role.getList() != null) {
-                int maxLevel = authUser.getRoles().stream()
-                        .filter(r -> r.getList() != null && r.getList().equals(role.getList()))
-                        .mapToInt(Role::getLevel).max().orElse(0);
-                if (role.getLevel() <= maxLevel) newUser.getRoles().add(role);
-            }
-        }
-    }
-
     @Override
-    public UserSummaryDto getUserInformation(Long authUserId, Long targetUserId) {
-        log.info("Richiesta informazioni utente. Richiedente ID: {}, Target ID: {}", authUserId, targetUserId);
+    @Transactional
+    public UserSummaryDto getUserInformation(Long authUserId, @Nullable Long targetUserId) {
+        User authUser = authService.getAuthenticatedUser(authUserId);
 
-        // 1. Recupero l'utente autenticato
-        User authUser = userRepository.findById(authUserId)
-                .orElseThrow(() -> {
-                    log.error("Errore: Utente richiedente {} non trovato nel database", authUserId);
-                    return new NotFoundException("Utente autenticato non trovato");
-                });
-
-        // 2. Se non c'è targetUserId o è se stesso
+        // Profilo personale
         if (targetUserId == null || targetUserId.equals(authUserId)) {
-            log.info("Visualizzazione profilo personale (self) per l'utente: {}", authUserId);
             return new UserSummaryDto(authUser);
         }
 
-        // 3. Recupero l'utente target
         User targetUser = userRepository.findById(targetUserId)
-                .orElseThrow(() -> {
-                    log.warn("Tentativo di visualizzare utente non esistente: {}", targetUserId);
-                    return new NotFoundException("Utente target non trovato");
-                });
+                .orElseThrow(() -> new NotFoundException("Utente target non trovato"));
 
-        // 4. Controllo Organizzazione
+        // Multi-tenancy check
         if (!targetUser.getOrg().getId().equals(authUser.getOrg().getId())) {
-            log.warn("VIOLAZIONE SICUREZZA: L'utente {} (Org: {}) ha tentato di visualizzare l'utente {} (Org: {})",
-                    authUserId, authUser.getOrg().getId(), targetUserId, targetUser.getOrg().getId());
             throw new ForbiddenException("Non puoi vedere utenti di altre organizzazioni");
         }
 
-        // 5. Controllo Permessi
+        // Controllo Permessi
         boolean permOrg = permissionService.hasPermission(authUserId, "view_all_user_organization");
-        boolean permLists = permissionService.hasPermission(authUserId, "view_all_user_list");
+        if (permOrg) return new UserSummaryDto(targetUser);
 
-        log.debug("Permessi utente {}: view_org={}, view_lists={}", authUserId, permOrg, permLists);
+        boolean permLists = targetUser.getLists().stream()
+                .anyMatch(list -> permissionService.hasPermissionOnList(authUserId, list.getId(), "view_all_user_list"));
 
-        if (permOrg) {
-            log.info("Accesso consentito a ID {} tramite permesso ORGANIZATION", targetUserId);
-            return new UserSummaryDto(targetUser);
+        if (!permLists) {
+            throw new ForbiddenException("Permesso negato per visualizzare questo utente");
         }
 
-        if (permLists) {
-            boolean isSharedList = targetUser.getLists().stream()
-                    .anyMatch(list -> {
-                        boolean hasPerm = permissionService.hasPermissionOnList(authUserId, list.getId(), "view_all_user_list");
-                        if (hasPerm) log.debug("Permesso trovato sulla lista ID: {}", list.getId());
-                        return hasPerm;
-                    });
-
-            if (!isSharedList) {
-                log.warn("Accesso negato: L'utente {} ha il permesso LIST ma non condivide liste autorizzate con l'utente {}", authUserId, targetUserId);
-                throw new ForbiddenException("Permesso negato per visualizzare questo utente nelle tue liste");
-            }
-
-            log.info("Accesso consentito a ID {} tramite permesso LIST", targetUserId);
-            return new UserSummaryDto(targetUser);
-        }
-
-        // Se arriva qui, non ha permessi sufficienti
-        log.warn("Accesso negato: L'utente {} non ha permessi sufficienti per vedere l'utente {}", authUserId, targetUserId);
-        throw new ForbiddenException("Permesso negato per visualizzare questo utente");
+        return new UserSummaryDto(targetUser);
     }
 
     @Override
+    @Transactional
     public Set<UserSummaryDto> getAllVisibleUsers(Long authUserId, @Nullable Long listId) {
-        // 1. Recupero utente autenticato
-        User authUser = userRepository.findById(authUserId)
-                .orElseThrow(() -> new NotFoundException("Utente autenticato non trovato"));
-
+        User authUser = authService.getAuthenticatedUser(authUserId);
         Long orgId = authUser.getOrg().getId();
-        log.info("Verifica permessi per utente {} nell'organizzazione {}", authUserId, orgId);
 
-        // 2. Recupero permessi
-        boolean hasOrgPerm = permissionService.hasPermission(authUserId, "view_all_user_organization");
-        boolean hasListPerm = permissionService.hasPermission(authUserId, "view_all_user_list");
-
-        // CASO A: Nessun listId fornito -> Richiede permesso Organizzazione
         if (listId == null) {
-            if (!hasOrgPerm) {
-                log.warn("Accesso negato: l'utente {} ha tentato di vedere tutta l'organizzazione senza permesso", authUserId);
-                throw new ForbiddenException("Non hai il permesso per vedere tutti gli utenti dell'organizzazione");
+            if (!permissionService.hasPermission(authUserId, "view_all_user_organization")) {
+                throw new ForbiddenException("Permesso richiesto per vedere tutti gli utenti dell'organizzazione");
             }
-
-            log.info("Recupero tutti gli utenti per l'organizzazione: {}", orgId);
             return userRepository.findAllByOrgId(orgId).stream()
-                    .map(UserSummaryDto::new)
-                    .collect(Collectors.toSet());
+                    .map(UserSummaryDto::new).collect(Collectors.toSet());
         }
 
-        // CASO B: listId fornito -> Richiede permesso List + appartenenza/potere su quella lista
-        if (!hasListPerm) {
-            log.warn("Accesso negato: l'utente {} ha tentato di filtrare per lista senza permesso view_all_user_list", authUserId);
-            throw new ForbiddenException("Non hai il permesso per vedere utenti di liste specifiche");
-        }
-
-        // Verifica se l'admin ha potere su QUELLA specifica lista
-        boolean canAccessThisList = permissionService.hasPermissionOnList(authUserId, listId, "view_all_user_list");
-
-        if (!canAccessThisList) {
-            log.warn("Accesso negato: l'utente {} non ha accesso alla lista specifica {}", authUserId, listId);
+        if (!permissionService.hasPermissionOnList(authUserId, listId, "view_all_user_list")) {
             throw new ForbiddenException("Non hai accesso agli utenti di questa lista");
         }
 
-        log.info("Recupero utenti per la lista: {}", listId);
-        // Nota: findAllByListsId deve essere definito nel UserRepository
         return userRepository.findAllByListsId(listId).stream()
-                .map(UserSummaryDto::new)
-                .collect(Collectors.toSet());
+                .map(UserSummaryDto::new).collect(Collectors.toSet());
     }
 
     @Override
+    @Transactional
     public void delete(Long authUserId, Long targetUserId) {
-        // 1. Recupero utente autenticato
-        User authUser = userRepository.findById(authUserId)
-                .orElseThrow(() -> new NotFoundException("Utente autenticato non trovato"));
+        User authUser = authService.getAuthenticatedUser(authUserId);
 
-        // 2. Controllo permesso 'delete_user_organization'
-        boolean hasPerm = permissionService.hasPermission(authUserId, "delete_user_organization");
-        if (!hasPerm) {
-            log.warn("Accesso negato: l'utente {} non ha il permesso delete_user_organization", authUserId);
-            throw new ForbiddenException("Permesso negato");
+        if (!permissionService.hasPermission(authUserId, "delete_user_organization")) {
+            throw new ForbiddenException("Permesso di eliminazione richiesto");
         }
 
-        // 3. Recupero utente da eliminare
         User userToDelete = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new NotFoundException("Utente da eliminare non trovato"));
 
-        // 4. Verifica organizzazione (cross-org check)
         if (!userToDelete.getOrg().getId().equals(authUser.getOrg().getId())) {
-            log.warn("VIOLAZIONE SICUREZZA: L'utente {} ha tentato di eliminare l'utente {} di un'altra Org",
-                    authUserId, targetUserId);
             throw new ForbiddenException("Non puoi eliminare utenti di altre organizzazioni");
         }
 
-        // 5. Esecuzione Soft Delete
-        log.info("Esecuzione soft delete per l'utente ID: {}", targetUserId);
         userToDelete.setDeleted(true);
-
-        // Non serve chiamare save() esplicitamente se il metodo è @Transactional,
-        // ma lo mettiamo per chiarezza o se non usi il dirty checking automatico.
         userRepository.save(userToDelete);
+        log.info("Soft-delete eseguito per utente ID: {}", targetUserId);
     }
 
     @Override
     @Transactional
     public UserSummaryDto update(Long authUserId, UserUpdateDto dto) {
-        // 1. Identificazione Target
         Long targetId = (dto.getId() != null) ? dto.getId() : authUserId;
-        User authUser = userRepository.findById(authUserId).orElseThrow(() -> new NotFoundException("Auth user not found"));
-        User targetUser = userRepository.findById(targetId).orElseThrow(() -> new NotFoundException("Target user not found"));
+        User authUser = authService.getAuthenticatedUser(authUserId);
+        User targetUser = userRepository.findById(targetId)
+                .orElseThrow(() -> new NotFoundException("Target user not found"));
 
-        // 2. Controllo Permessi (Simile alla logica Django)
-        boolean isSelfUpdate = authUserId.equals(targetId);
-        boolean canModifyOrg = permissionService.hasPermission(authUserId, "update_user_organization");
-        boolean canModifyList = permissionService.hasPermission(authUserId, "update_user_list");
+        // Validazione Permessi
+        boolean isSelf = authUserId.equals(targetId);
+        boolean hasOrg = permissionService.hasPermission(authUserId, "update_user_organization");
+        boolean hasList = permissionService.hasPermission(authUserId, "update_user_list");
 
-        validateUpdatePermissions(authUser, targetUser, isSelfUpdate, canModifyOrg, canModifyList);
+        validateUpdateAccess(authUser, targetUser, isSelf, hasOrg, hasList);
 
-        // 3. Aggiornamento campi base
+        // Update Campi
         if (dto.getName() != null) targetUser.setName(dto.getName());
         if (dto.getSurname() != null) targetUser.setSurname(dto.getSurname());
         if (dto.getEmail() != null) targetUser.setEmail(dto.getEmail());
 
-        // 4. Reset Password (SHA-256 come richiesto)
         if (Boolean.TRUE.equals(dto.getResetPassword())) {
-            String temporaryPass = "Cambiami";
-            targetUser.setPassword(passwordEncoder.encode(temporaryPass)); // Implementa con MessageDigest
+            targetUser.setPassword(passwordEncoder.encode("Cambiami"));
             targetUser.setMustChangePassword(true);
-            log.info("Password resettata per utente {}. Nuova pass temporanea: {}", targetId, temporaryPass);
         }
 
-        // 5. Gestione Liste (solo se admin)
-        if (canModifyOrg || canModifyList) {
-            handleListAssociations(targetUser, authUser, dto, canModifyOrg);
+        // Gestione Liste (solo admin)
+        if (hasOrg || hasList) {
+            handleListUpdate(targetUser, authUserId, dto, hasOrg);
         }
 
         return new UserSummaryDto(userRepository.save(targetUser));
     }
 
-    private void validateUpdatePermissions(User auth, User target, boolean isSelf, boolean hasOrg, boolean hasList) {
-        if (hasOrg) {
-            if (!auth.getOrg().getId().equals(target.getOrg().getId()))
-                throw new ForbiddenException("Cross-org update non consentito");
-            return;
-        }
+    // --- HELPERS ---
 
-        if (hasList) {
-            boolean sharedList = permissionService.checkSharedLists(auth.getId(), target.getId(), "update_user_list");
-            if (!sharedList && !isSelf)
-                throw new ForbiddenException("L'utente target non è in una lista autorizzata");
-            return;
-        }
+    private void validateUpdateAccess(User auth, User target, boolean isSelf, boolean hasOrg, boolean hasList) {
+        if (!auth.getOrg().getId().equals(target.getOrg().getId())) throw new ForbiddenException("Cross-org update negato");
 
-        if (!isSelf) {
-            throw new ForbiddenException("Non hai i permessi per modificare questo utente");
+        if (hasOrg) return;
+        if (hasList && (isSelf || permissionService.checkSharedLists(auth.getId(), target.getId(), "update_user_list"))) return;
+        if (isSelf) return;
+
+        throw new ForbiddenException("Permessi insufficienti per modificare l'utente");
+    }
+
+    private void processOrgLists(Set<Long> listIds, User newUser, Long orgId) {
+        if (listIds == null) return;
+        for (Long id : listIds) {
+            listRepository.findByIdAndOrgId(id, orgId).ifPresent(l -> {
+                l.getUsers().add(newUser);
+                listRepository.save(l);
+            });
         }
     }
 
-    /**
-     * Gestisce l'aggiunta e la rimozione delle liste per un utente target.
-     */
-    private void handleListAssociations(User target, User auth, UserUpdateDto dto, boolean isOrgAdmin) {
+    private void processRestrictedList(Set<Long> listIds, User newUser, Long authUserId) {
+        if (listIds == null || listIds.size() != 1) {
+            throw new ForbiddenException("Puoi creare utenti in una sola lista alla volta");
+        }
+        Long targetId = listIds.iterator().next();
+        if (!permissionService.hasPermissionOnList(authUserId, targetId, "create_user_for_list")) {
+            throw new ForbiddenException("Non hai permessi su questa lista");
+        }
+        listRepository.findById(targetId).ifPresent(l -> l.getUsers().add(newUser));
+    }
 
-        // --- RIMOZIONE LISTE ---
-        if (dto.getRemoveLists() != null && !dto.getRemoveLists().isEmpty()) {
-            for (Long listId : dto.getRemoveLists()) {
-                // Se sono OrgAdmin posso rimuovere tutto, altrimenti solo se ho permessi su quella lista
-                if (isOrgAdmin || permissionService.hasPermissionOnList(auth.getId(), listId, "update_user_list")) {
-                    target.getLists().removeIf(l -> l.getId().equals(listId));
-                    log.info("Rimossa lista {} dall'utente {}", listId, target.getId());
+    private void processRoles(Set<Long> roleIds, User newUser, Long authUserId) {
+        if (roleIds == null) return;
+        for (Long roleId : roleIds) {
+            Role role = roleRepository.findById(roleId).orElse(null);
+            if (role == null) continue;
 
-                    // Opzionale: Rimuovi i ruoli associati a questa lista (come nel codice Django)
-                    target.getRoles().removeIf(role -> role.getList() != null && role.getList().getId().equals(listId));
+            int maxLevel = (role.getList() == null) ?
+                    roleRepository.findMaxLevelByUserIdAndOrgId(authUserId, newUser.getOrg().getId()) :
+                    roleRepository.findMaxLevelByUserIdAndListId(authUserId, role.getList().getId());
+
+            if (role.getLevel() < maxLevel) {
+                newUser.getRoles().add(role);
+            }
+        }
+    }
+
+    private void handleListUpdate(User target, Long authUserId, UserUpdateDto dto, boolean isOrgAdmin) {
+        if (dto.getRemoveLists() != null) {
+            for (Long id : dto.getRemoveLists()) {
+                if (isOrgAdmin || permissionService.hasPermissionOnList(authUserId, id, "update_user_list")) {
+                    target.getLists().removeIf(l -> l.getId().equals(id));
+                    target.getRoles().removeIf(r -> r.getList() != null && r.getList().getId().equals(id));
                 }
             }
         }
-
-        // --- AGGIUNTA LISTE ---
-        if (dto.getAddLists() != null && !dto.getAddLists().isEmpty()) {
-            for (Long listId : dto.getAddLists()) {
-                if (isOrgAdmin || permissionService.hasPermissionOnList(auth.getId(), listId, "update_user_list")) {
-                    // Verifichiamo che la lista esista e appartenga alla stessa Org
-                    listRepository.findById(listId).ifPresent(list -> {
-                        if (list.getOrg().getId().equals(target.getOrg().getId())) {
-                            target.getLists().add(list);
-                            log.info("Aggiunta lista {} all'utente {}", listId, target.getId());
-                        }
+        if (dto.getAddLists() != null) {
+            for (Long id : dto.getAddLists()) {
+                if (isOrgAdmin || permissionService.hasPermissionOnList(authUserId, id, "update_user_list")) {
+                    listRepository.findById(id).ifPresent(l -> {
+                        if (l.getOrg().getId().equals(target.getOrg().getId())) target.getLists().add(l);
                     });
                 }
             }

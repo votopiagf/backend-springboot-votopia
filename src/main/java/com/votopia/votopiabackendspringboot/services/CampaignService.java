@@ -3,6 +3,7 @@ package com.votopia.votopiabackendspringboot.services;
 import com.votopia.votopiabackendspringboot.dtos.campaign.CampaignAddCandidateDto;
 import com.votopia.votopiabackendspringboot.dtos.campaign.CampaignCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.campaign.CampaignSummaryDto;
+import com.votopia.votopiabackendspringboot.dtos.campaign.CampaignUpdateDto;
 import com.votopia.votopiabackendspringboot.entities.campaigns.Campaign;
 import com.votopia.votopiabackendspringboot.entities.campaigns.CandidateCampaign;
 import com.votopia.votopiabackendspringboot.entities.campaigns.CandidatePositionCampaign;
@@ -157,4 +158,21 @@ public interface CampaignService {
      * una campagna di un'altra organizzazione.
      */
     void deleteCampaign(@NotNull Long campaignId, Long authUserId);
+
+    /**
+     * Aggiorna i dettagli di una campagna esistente applicando modifiche parziali.
+     * <p>
+     * Il metodo esegue i seguenti controlli di sicurezza:
+     * 1. Verifica l'esistenza e l'appartenenza della campagna all'organizzazione dell'utente (Multi-tenancy).
+     * 2. Valida i permessi gerarchici: l'utente deve possedere 'update_campaign_organization'
+     * a livello globale o 'update_campaign_list' sulla lista specifica.
+     * </p>
+     *
+     * @param dto        Oggetto {@link CampaignUpdateDto} contenente l'ID della campagna e i campi da aggiornare.
+     * @param authUserId ID dell'utente autenticato ricavato dal Security Context.
+     * @return           Un {@link CampaignSummaryDto} che rappresenta lo stato aggiornato della campagna.
+     * @throws NotFoundException   Se la campagna o l'utente non vengono trovati.
+     * @throws ForbiddenException  In caso di violazione della multi-tenancy o permessi insufficienti.
+     */
+    CampaignSummaryDto update(CampaignUpdateDto dto, Long authUserId);
 }

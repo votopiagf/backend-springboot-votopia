@@ -5,6 +5,7 @@ import com.votopia.votopiabackendspringboot.dtos.SuccessResponse;
 import com.votopia.votopiabackendspringboot.dtos.campaign.CampaignAddCandidateDto;
 import com.votopia.votopiabackendspringboot.dtos.campaign.CampaignCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.campaign.CampaignSummaryDto;
+import com.votopia.votopiabackendspringboot.dtos.campaign.CampaignUpdateDto;
 import com.votopia.votopiabackendspringboot.services.CampaignService;
 import io.micrometer.common.lang.Nullable;
 import io.swagger.v3.oas.annotations.Operation;
@@ -214,12 +215,40 @@ public class CampaignController {
     @DeleteMapping("/delete/")
     public ResponseEntity<SuccessResponse<Void>> deleteCampaign(
             @Parameter(description = "ID della campagna da eliminare", required = true)
-            @RequestParam(value = "campaing_id") Long campaignId,
+            @RequestParam(value = "campaign_id") Long campaignId,
             Authentication authentication) {
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         campaignService.deleteCampaign(campaignId, userDetails.getId());
 
         return ResponseEntity.ok(new SuccessResponse<>(true, 200, null, "Campagna eliminata con successo", System.currentTimeMillis()));
+    }
+
+    @Operation(
+            summary = "Aggiorna una campagna",
+            description = "Consente di modificare nome, descrizione e date di una campagna. " +
+                    "Richiede permessi di organizzazione o di lista.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Campagna aggiornata con successo"),
+                    @ApiResponse(responseCode = "403", description = "Permessi insufficienti o violazione multi-tenancy"),
+                    @ApiResponse(responseCode = "404", description = "Campagna non trovata")
+            }
+    )
+    @PutMapping("/update/")
+    public ResponseEntity<SuccessResponse<CampaignSummaryDto>> updateCampaign(
+            @RequestBody @Valid CampaignUpdateDto dto,
+            Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getId();
+
+        return ResponseEntity.ok(
+                new SuccessResponse<>(
+                        true,
+                        200,
+                        campaignService.update(dto, userId),
+                        "Campagna modificata con successo",
+                        System.currentTimeMillis()
+                )
+        );
     }
 }

@@ -37,4 +37,6 @@ public interface PermissionService {
     boolean hasPermissionOnList(Long userId, Long listId, String permissionName);
 
     boolean checkSharedLists(Long authUserId, Long targetUserId, String permissionCode);
+
+    void validatePermission(Long authUserId, Long listId, String orgPerm, String listPerm, String errorMsg);
 }
