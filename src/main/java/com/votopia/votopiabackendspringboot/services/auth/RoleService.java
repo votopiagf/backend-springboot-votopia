@@ -95,8 +95,8 @@ public interface RoleService {
      * <p>
      * Logica di autorizzazione:
      * <ul>
-     * <li>Se {@code roleId} è {@code null}: restituisce i ruoli associati all'utente {@code authUserId}.</li>
-     * <li>Se {@code roleId} è presente:
+     * <li>Se {@code id} è {@code null}: restituisce i ruoli associati all'utente {@code authUserId}.</li>
+     * <li>Se {@code id} è presente:
      * <ul>
      * <li>Il ruolo deve appartenere alla stessa organizzazione dell'utente.</li>
      * <li>L'accesso è garantito dal permesso {@code view_all_role_organization}.</li>

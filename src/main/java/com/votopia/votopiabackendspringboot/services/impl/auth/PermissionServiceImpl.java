@@ -36,7 +36,7 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     public java.util.List<PermissionSummaryDto> getUserPermissions(Long userId) {
         return userRepository.findAllPermissionsByUserId(userId).stream()
-                .map(p -> new PermissionSummaryDto(p.getId(), p.getName(), p.getDescription())) // Niente cast qui!
+                .map(PermissionSummaryDto::new) // Niente cast qui!
                 .collect(Collectors.toList());
     }
 

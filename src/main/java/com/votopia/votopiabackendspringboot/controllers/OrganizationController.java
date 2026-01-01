@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/organization")
+@RequestMapping("/api/organizations")
 @Tag(name = "Organization", description = "Endpoint per il recupero delle informazioni dell'organizzazione.")
 public class OrganizationController {
 
@@ -42,7 +42,7 @@ public class OrganizationController {
     @SecurityRequirements // Rimuove esplicitamente l'obbligo del lucchetto (Security Scheme) in Swagger UI
     public ResponseEntity<SuccessResponse<OrganizationSummaryDto>> getByCode(
             @Parameter(description = "Il codice univoco dell'organizzazione (es. VOTOPIA_01)", required = true)
-            @RequestParam(value = "organization_id") @Valid String code){
+            @RequestParam(value = "organization_code") @Valid String code){
 
         OrganizationSummaryDto org = organizationService.getOrganizationByCode(code);
 

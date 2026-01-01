@@ -1,5 +1,6 @@
 package com.votopia.votopiabackendspringboot.controllers;
 
+import com.votopia.votopiabackendspringboot.dtos.SuccessResponse;
 import com.votopia.votopiabackendspringboot.dtos.auth.LoginRequestDto;
 import com.votopia.votopiabackendspringboot.dtos.auth.LoginSummaryDto;
 import com.votopia.votopiabackendspringboot.services.auth.AuthService;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,8 +40,17 @@ public class AuthController {
     })
     @PostMapping("login/")
     @SecurityRequirements // Rimuove l'obbligo del lucchetto JWT per questo endpoint in Swagger UI
-    public ResponseEntity<LoginSummaryDto> login(@RequestBody @Valid LoginRequestDto request){
+    public ResponseEntity<SuccessResponse<LoginSummaryDto>> login(@RequestBody @Valid LoginRequestDto request){
         log.info("Tentativo di login per l'utente: {}", request.getEmail());
-        return ResponseEntity.ok(authService.login(request));
+        LoginSummaryDto response = authService.login(request);
+        return ResponseEntity.ok(
+                new SuccessResponse<>(
+                        true,
+                        HttpStatus.OK.value(),
+                        response,
+                        "Login effettuato con successo",
+                        System.currentTimeMillis()
+                )
+        );
     }
 }

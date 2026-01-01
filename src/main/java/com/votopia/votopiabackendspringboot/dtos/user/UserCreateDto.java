@@ -1,28 +1,47 @@
 package com.votopia.votopiabackendspringboot.dtos.user;
 
-import lombok.*;
+import com.votopia.votopiabackendspringboot.entities.auth.Role;
+import com.votopia.votopiabackendspringboot.entities.auth.User;
+import com.votopia.votopiabackendspringboot.entities.lists.List;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-public class UserCreateDto {
-    @NonNull
-    private String name;
 
-    @NonNull
-    private String surname;
+public record UserCreateDto (
+    @NotBlank(message = "Il nome non può essere vuoto")
+    @Size(max = 100)
+    String name,
 
-    @NonNull
-    private String email;
+    @NotBlank(message = "Il cognome non può essere vuoto")
+    @Size(max = 100)
+    String surname,
 
-    @NonNull
-    private String password;
+    @NotBlank(message = "L'email non può essere vuota")
+    @Size(max = 150)
+    String email,
 
-    private Set<Long> rolesId;
+    @NotBlank(message = "La password non può essere vuota")
+    String password,
 
-    private Set<Long> listsId;
+    Set<Long> rolesId,
+
+    Set<Long> listsId
+) {
+   public UserCreateDto(User u){
+       this(
+               u.getName(),
+               u.getSurname(),
+               u.getEmail(),
+               u.getPassword(),
+               u.getRoles().stream()
+                       .map(Role::getId)
+                       .collect(Collectors.toSet()),
+               u.getLists().stream()
+                       .map(List::getId)
+                       .collect(Collectors.toSet())
+       );
+   }
 }

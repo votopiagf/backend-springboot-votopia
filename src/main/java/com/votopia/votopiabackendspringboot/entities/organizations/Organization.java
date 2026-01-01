@@ -36,7 +36,7 @@ public class Organization {
     private LocalDateTime createdAt;
 
     @Column(name = "max_lists", nullable = false)
-    private Integer maxLists;
+    private Integer maxLists = 1;
 
     @PrePersist
     protected void onCreate() {

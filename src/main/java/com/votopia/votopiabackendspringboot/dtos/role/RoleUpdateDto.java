@@ -5,7 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Set;
 
 public record RoleUpdateDto(
-        @NotNull Long roleId,
+        @NotNull(message = "L'id non può essere vuoto")
+        Long id,
         String name,
         String color,
         Integer level,

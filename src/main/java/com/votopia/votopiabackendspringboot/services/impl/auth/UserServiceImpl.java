@@ -53,16 +53,16 @@ public class UserServiceImpl implements UserService {
             throw new ForbiddenException("Non hai i permessi per creare utenti");
         }
 
-        if (userRepository.existsByEmailAndOrgAndDeletedFalse(dto.getEmail(), authUser.getOrg())) {
+        if (userRepository.existsByEmailAndOrgAndDeletedFalse(dto.email(), authUser.getOrg())) {
             throw new ConflictException("Utente con questa email già esiste nell'organizzazione");
         }
 
         // 2. Creazione Utente Base
         User newUser = new User();
-        newUser.setName(dto.getName());
-        newUser.setSurname(dto.getSurname());
-        newUser.setEmail(dto.getEmail());
-        newUser.setPassword(passwordEncoder.encode(dto.getPassword()));
+        newUser.setName(dto.name());
+        newUser.setSurname(dto.surname());
+        newUser.setEmail(dto.email());
+        newUser.setPassword(passwordEncoder.encode(dto.password()));
         newUser.setOrg(authUser.getOrg());
 
         // Salviamo per avere l'ID
@@ -70,13 +70,13 @@ public class UserServiceImpl implements UserService {
 
         // 3. Gestione Liste
         if (canOrg) {
-            processOrgLists(dto.getListsId(), newUser, authUser.getOrg().getId());
+            processOrgLists(dto.listsId(), newUser, authUser.getOrg().getId());
         } else {
-            processRestrictedList(dto.getListsId(), newUser, authUserId);
+            processRestrictedList(dto.listsId(), newUser, authUserId);
         }
 
         // 4. Gestione Ruoli
-        processRoles(dto.getRolesId(), newUser, authUserId);
+        processRoles(dto.rolesId(), newUser, authUserId);
 
         log.info("Utente registrato con successo: {} (ID: {})", newUser.getEmail(), newUser.getId());
         return new UserSummaryDto(userRepository.save(newUser));
@@ -160,7 +160,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserSummaryDto update(Long authUserId, UserUpdateDto dto) {
-        Long targetId = (dto.getId() != null) ? dto.getId() : authUserId;
+        Long targetId = (dto.id() != null) ? dto.id() : authUserId;
         User authUser = authService.getAuthenticatedUser(authUserId);
         User targetUser = userRepository.findById(targetId)
                 .orElseThrow(() -> new NotFoundException("Target user not found"));
@@ -173,11 +173,11 @@ public class UserServiceImpl implements UserService {
         validateUpdateAccess(authUser, targetUser, isSelf, hasOrg, hasList);
 
         // Update Campi
-        if (dto.getName() != null) targetUser.setName(dto.getName());
-        if (dto.getSurname() != null) targetUser.setSurname(dto.getSurname());
-        if (dto.getEmail() != null) targetUser.setEmail(dto.getEmail());
+        if (dto.name() != null) targetUser.setName(dto.name());
+        if (dto.surname() != null) targetUser.setSurname(dto.surname());
+        if (dto.email() != null) targetUser.setEmail(dto.email());
 
-        if (Boolean.TRUE.equals(dto.getResetPassword())) {
+        if (Boolean.TRUE.equals(dto.resetPassword())) {
             targetUser.setPassword(passwordEncoder.encode("Cambiami"));
             targetUser.setMustChangePassword(true);
         }
@@ -240,16 +240,16 @@ public class UserServiceImpl implements UserService {
     }
 
     private void handleListUpdate(User target, Long authUserId, UserUpdateDto dto, boolean isOrgAdmin) {
-        if (dto.getRemoveLists() != null) {
-            for (Long id : dto.getRemoveLists()) {
+        if (dto.removeLists() != null) {
+            for (Long id : dto.removeLists()) {
                 if (isOrgAdmin || permissionService.hasPermissionOnList(authUserId, id, "update_user_list")) {
                     target.getLists().removeIf(l -> l.getId().equals(id));
                     target.getRoles().removeIf(r -> r.getList() != null && r.getList().getId().equals(id));
                 }
             }
         }
-        if (dto.getAddLists() != null) {
-            for (Long id : dto.getAddLists()) {
+        if (dto.addLists() != null) {
+            for (Long id : dto.addLists()) {
                 if (isOrgAdmin || permissionService.hasPermissionOnList(authUserId, id, "update_user_list")) {
                     listRepository.findById(id).ifPresent(l -> {
                         if (l.getOrg().getId().equals(target.getOrg().getId())) target.getLists().add(l);

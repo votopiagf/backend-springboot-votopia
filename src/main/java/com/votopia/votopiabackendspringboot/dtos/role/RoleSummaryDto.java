@@ -1,13 +1,10 @@
 package com.votopia.votopiabackendspringboot.dtos.role;
 
-import com.votopia.votopiabackendspringboot.dtos.list.ListBasicDto;
-import com.votopia.votopiabackendspringboot.dtos.permission.PermissionSummaryDto;
+import com.votopia.votopiabackendspringboot.dtos.list.ListSummaryDto;
 import com.votopia.votopiabackendspringboot.entities.auth.Role;
 import lombok.*;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
+/*
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
@@ -33,4 +30,20 @@ public class RoleSummaryDto {
     private String name;
 
     private Set<PermissionSummaryDto> permissions;
+}*/
+
+public record RoleSummaryDto(
+        Long id,
+        ListSummaryDto list,
+        String name,
+        String color
+) {
+    public RoleSummaryDto(Role r){
+        this(
+            r.getId(),
+            new ListSummaryDto(r.getList()),
+            r.getName(),
+            r.getColor()
+        );
+    }
 }

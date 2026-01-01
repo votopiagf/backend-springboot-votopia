@@ -14,7 +14,7 @@ public interface OrganizationService {
      * </p>
      *
      * @param code Il codice stringa univoco dell'organizzazione (es. "VOTOPIA_01").
-     * @return     Un {@link OrganizationSummaryDto} con i metadati dell'organizzazione.
+     * @return Un {@link OrganizationSummaryDto} con i metadati dell'organizzazione.
      * @throws BadRequestException Se il parametro {@code code} è nullo o vuoto.
      * @throws NotFoundException   Se non esiste alcuna organizzazione associata al codice fornito.
      */

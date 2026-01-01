@@ -6,7 +6,7 @@ import lombok.Setter;
 
 import java.util.Set;
 
-@Data
+/*@Data
 @Getter
 @Setter
 public class UserUpdateDto {
@@ -17,4 +17,16 @@ public class UserUpdateDto {
     private Boolean resetPassword;
     Set<Long> addLists;
     Set<Long> removeLists;
+}
+*/
+
+public record UserUpdateDto(
+        Long id,
+        String name,
+        String surname,
+        String email,
+        Boolean resetPassword,
+        Set<Long> addLists,
+        Set<Long> removeLists
+) {
 }

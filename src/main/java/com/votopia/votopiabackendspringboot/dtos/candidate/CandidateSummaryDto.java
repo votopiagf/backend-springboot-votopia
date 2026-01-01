@@ -8,16 +8,14 @@ public record CandidateSummaryDto(
         Long id,
         UserSummaryDto user,
         String schoolClass,
-        File photoFileId,
-        String bio
+        File photoFileId
 ) {
     public CandidateSummaryDto(Candidate c){
         this(
                 c.getId(),
                 new UserSummaryDto(c.getUser()),
                 c.getSchoolClass(),
-                c.getPhotoFileId(),
-                c.getBio()
+                c.getPhotoFileId()
         );
     }
 }

@@ -41,35 +41,35 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     public RoleSummaryDto create(RoleCreateDto dto, Long authUserId) {
         User authUser = authService.getAuthenticatedUser(authUserId);
-        boolean isListRole = dto.getListId() != null;
+        boolean isListRole = dto.listId() != null;
 
         // 1. Controllo Possessione Permessi (L'utente può dare solo ciò che ha)
-        validatePermissionsPossession(authUserId, dto.getPermissionsId());
+        validatePermissionsPossession(authUserId, dto.permissionsId());
 
         // 2. Preparazione Ruolo e Calcolo Livello Massimo
         Role newRole = new Role();
-        newRole.setName(dto.getName());
-        newRole.setColor(dto.getColor());
+        newRole.setName(dto.name());
+        newRole.setColor(dto.color());
         newRole.setOrganization(authUser.getOrg());
 
         int maxAuthLevel;
         if (isListRole) {
-            List targetList = validateListAndGet(authUser, dto.getListId(), "create_role_list", "create_role_organization");
+            List targetList = validateListAndGet(authUser, dto.listId(), "create_role_list", "create_role_organization");
             newRole.setList(targetList);
-            maxAuthLevel = roleRepository.findMaxLevelByUserIdAndListId(authUserId, dto.getListId());
+            maxAuthLevel = roleRepository.findMaxLevelByUserIdAndListId(authUserId, dto.listId());
         } else {
             validateGlobalPermission(authUserId, "create_role_organization", "Permesso 'create_role_organization' richiesto.");
             maxAuthLevel = roleRepository.findMaxLevelByUserIdAndOrgId(authUserId, authUser.getOrg().getId());
         }
 
         // 3. Controllo Gerarchico
-        if (dto.getLevel() >= maxAuthLevel) {
-            throw new ForbiddenException("Violazione gerarchica: non puoi creare un ruolo di livello " + dto.getLevel() + " (Max: " + maxAuthLevel + ")");
+        if (dto.level() >= maxAuthLevel) {
+            throw new ForbiddenException("Violazione gerarchica: non puoi creare un ruolo di livello " + dto.level() + " (Max: " + maxAuthLevel + ")");
         }
-        newRole.setLevel(dto.getLevel());
+        newRole.setLevel(dto.level());
 
         // 4. Assegnazione Permessi
-        assignPermissionsToRole(newRole, dto.getPermissionsId());
+        assignPermissionsToRole(newRole, dto.permissionsId());
 
         Role savedRole = roleRepository.save(newRole);
         log.info("Ruolo creato: {} (ID: {}) contesto: {}", savedRole.getName(), savedRole.getId(), isListRole ? "LIST" : "ORG");
@@ -141,7 +141,7 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     public RoleSummaryDto update(RoleUpdateDto dto, Long authUserId) {
         User authUser = authService.getAuthenticatedUser(authUserId);
-        Role roleTarget = getRoleAndValidateOrg(dto.roleId(), authUser);
+        Role roleTarget = getRoleAndValidateOrg(dto.id(), authUser);
 
         int maxAuthLevel;
         if (roleTarget.getList() == null) {
@@ -203,7 +203,7 @@ public class RoleServiceImpl implements RoleService {
     private void validatePermissionsPossession(Long authUserId, Set<Long> permsToAssign) {
         if (permsToAssign == null || permsToAssign.isEmpty()) return;
         Set<Long> userPermIds = permissionService.getUserPermissions(authUserId).stream()
-                .map(PermissionSummaryDto::getId).collect(Collectors.toSet());
+                .map(PermissionSummaryDto::id).collect(Collectors.toSet());
         if (!userPermIds.containsAll(permsToAssign)) {
             throw new ForbiddenException("Non puoi assegnare permessi che non possiedi.");
         }

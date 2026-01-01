@@ -1,5 +1,7 @@
 package com.votopia.votopiabackendspringboot.dtos.list;
 
+import com.votopia.votopiabackendspringboot.dtos.file.FileSummaryDto;
+import com.votopia.votopiabackendspringboot.dtos.school.SchoolSummaryDto;
 import com.votopia.votopiabackendspringboot.entities.lists.List;
 
 /**
@@ -8,12 +10,9 @@ import com.votopia.votopiabackendspringboot.entities.lists.List;
 public record ListSummaryDto(
         Long id,
         String name,
-        Long schoolId,
-        String description,
+        SchoolSummaryDto school,
         String slogan,
-        String colorPrimary,
-        String colorSecondary,
-        Long logoFileId
+        FileSummaryDto logoFile
 ) {
     /**
      * Costruttore per convertire l'entità List nel DTO.
@@ -23,12 +22,9 @@ public record ListSummaryDto(
         this(
                 list.getId(),
                 list.getName(),
-                list.getSchool() != null ? list.getSchool().getId() : null,
-                list.getDescription(),
+                list.getSchool() != null ? new SchoolSummaryDto(list.getSchool()) : null,
                 list.getSlogan(),
-                list.getColorPrimary(),
-                list.getColorSecondary(),
-                list.getLogoFile() != null ? list.getLogoFile().getId() : null
+                list.getLogoFile() != null ? new FileSummaryDto(list.getLogoFile()) : null
         );
     }
 }

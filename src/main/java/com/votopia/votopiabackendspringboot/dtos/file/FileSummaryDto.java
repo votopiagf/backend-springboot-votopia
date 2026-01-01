@@ -10,11 +10,7 @@ public record FileSummaryDto(
         Long id,
         String name,
         String filePath,
-        String mimeType,
-        Long listId,
-        Long categoryId,
-        Long userId,
-        LocalDateTime uploadedAt
+        String mimeType
 ) {
     /**
      * Costruttore compatto per mappare l'entità File nel DTO.
@@ -25,11 +21,7 @@ public record FileSummaryDto(
                 file.getId(),
                 file.getName(),
                 file.getFilePath(),
-                file.getMimeType(),
-                file.getList() != null ? file.getList().getId() : null,
-                file.getFileCategory() != null ? file.getFileCategory().getId() : null,
-                file.getUser() != null ? file.getUser().getId() : null,
-                file.getUploadedAt()
+                file.getMimeType()
         );
     }
 }
