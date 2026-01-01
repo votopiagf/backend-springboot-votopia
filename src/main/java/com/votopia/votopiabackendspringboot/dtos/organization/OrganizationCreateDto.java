@@ -1,4 +1,4 @@
 package com.votopia.votopiabackendspringboot.dtos.organization;
 
-public class OrganizationSummaryDto {
+public record OrganizationCreateDto() {
 }
