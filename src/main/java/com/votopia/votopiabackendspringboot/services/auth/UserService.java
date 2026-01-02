@@ -1,6 +1,7 @@
 package com.votopia.votopiabackendspringboot.services.auth;
 
 import com.votopia.votopiabackendspringboot.dtos.user.UserCreateDto;
+import com.votopia.votopiabackendspringboot.dtos.user.UserDetailDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserUpdateDto;
 import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
@@ -8,6 +9,7 @@ import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
 import com.votopia.votopiabackendspringboot.exceptions.ConflictException;
 import jakarta.annotation.Nullable;
 
+import java.io.ByteArrayInputStream;
 import java.util.Set;
 
 public interface UserService {
@@ -46,14 +48,14 @@ public interface UserService {
      * </ul>
      * </p>
      *
-     * @param authUserId   ID dell'utente autenticato che effettua la richiesta (estratto dal contesto di sicurezza).
-     * @param userId ID opzionale dell'utente da visualizzare. Se {@code null}, viene restituito l'utente richiedente.
+     * @param authUserId ID dell'utente autenticato che effettua la richiesta (estratto dal contesto di sicurezza).
+     * @param userId     ID opzionale dell'utente da visualizzare. Se {@code null}, viene restituito l'utente richiedente.
      * @return Un oggetto {@link UserSummaryDto} con i dettagli dell'utente richiesto.
      * @throws NotFoundException  Se l'utente richiedente o l'utente target non vengono trovati nel database.
      * @throws ForbiddenException Se il richiedente tenta di visualizzare un utente di un'altra organizzazione
-     * o non dispone dei permessi necessari per la visualizzazione esterna.
+     *                            o non dispone dei permessi necessari per la visualizzazione esterna.
      */
-    UserSummaryDto getUserInformation(@Nullable Long userId, Long authUserId);
+    UserDetailDto getUserInformation(@Nullable Long userId, Long authUserId);
 
     /**
      * Recupera la lista degli utenti visibili in base ai permessi del richiedente e al filtro applicato.
@@ -73,7 +75,7 @@ public interface UserService {
      * @throws ForbiddenException Se l'utente non ha i permessi necessari o tenta di accedere a una lista non autorizzata.
      * @throws NotFoundException  Se l'utente autenticato non viene trovato nel sistema.
      */
-    Set<UserSummaryDto> getAllVisibleUsers(Long authUserId, @Nullable Long listId);
+    Set<UserDetailDto> getAllVisibleUsers(Long authUserId, @Nullable Long listId);
 
     /**
      * Esegue la cancellazione logica (soft delete) di un utente nel sistema.
@@ -112,4 +114,12 @@ public interface UserService {
      * @return DTO dell'utente aggiornato.
      */
     UserSummaryDto update(Long authUserId, UserUpdateDto dto);
+
+    Set<UserSummaryDto> registerListUsers(Set<UserCreateDto> users, Long authUserId);
+
+    Set<UserSummaryDto> updateListUsers(Set<UserUpdateDto> users, Long authUserId);
+
+    void deleteList(Set<Long> targetUsers, Long authUserId);
+
+    ByteArrayInputStream createExcelAllVisibleUsers(Long authUserId, @Nullable Long targetListId);
 }

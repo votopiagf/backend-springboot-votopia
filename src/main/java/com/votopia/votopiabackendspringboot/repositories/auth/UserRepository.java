@@ -41,4 +41,12 @@ public interface UserRepository extends JpaRepository<User, Long> { ;
     Collection<User> findAllByOrgId(Long orgId);
 
     Collection<User> findAllByListsId(Long listsId);
+
+    Optional<Object> findUserByEmailAndOrg(String email, Organization org);
+
+    List<User> findUsersByIdAndOrg(Long id, Organization org);
+
+    List<User> findUsersByIdAndOrgId(Long id, Long orgId);
+
+    boolean existsByEmailAndId(String email, Long id);
 }

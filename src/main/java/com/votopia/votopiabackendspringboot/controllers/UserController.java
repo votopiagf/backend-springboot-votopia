@@ -3,6 +3,7 @@ package com.votopia.votopiabackendspringboot.controllers;
 import com.votopia.votopiabackendspringboot.config.CustomUserDetails;
 import com.votopia.votopiabackendspringboot.dtos.SuccessResponse;
 import com.votopia.votopiabackendspringboot.dtos.user.UserCreateDto;
+import com.votopia.votopiabackendspringboot.dtos.user.UserDetailDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.user.UserUpdateDto;
 import com.votopia.votopiabackendspringboot.services.auth.UserService;
@@ -16,12 +17,18 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayInputStream;
 import java.util.Set;
+
+import static java.lang.System.in;
 
 @RestController
 @Slf4j
@@ -59,12 +66,12 @@ public class UserController {
             description = "Recupera i dettagli di un utente specifico o dell'utente autenticato (se target_user_id è omesso)."
     )
     @GetMapping("/info/")
-    public ResponseEntity<SuccessResponse<UserSummaryDto>> info(
+    public ResponseEntity<SuccessResponse<UserDetailDto>> info(
             @Parameter(description = "ID dell'utente da visualizzare. Se vuoto, restituisce l'utente corrente.")
             @RequestParam(value = "target_user_id", required = false) Long targetUserId,
             Authentication authentication) {
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        UserSummaryDto userTarget = userService.getUserInformation(userDetails.getId(), targetUserId);
+        UserDetailDto userTarget = userService.getUserInformation(userDetails.getId(), targetUserId);
 
         return ResponseEntity.ok(new SuccessResponse<>(
                 true, 200, userTarget, "Utente ottenuto con successo", System.currentTimeMillis()
@@ -76,12 +83,12 @@ public class UserController {
             description = "Restituisce l'elenco degli utenti appartenenti all'organizzazione. Può essere filtrato per una lista specifica."
     )
     @GetMapping("/all/")
-    public ResponseEntity<SuccessResponse<Set<UserSummaryDto>>> all(
+    public ResponseEntity<SuccessResponse<Set<UserDetailDto>>> all(
             @Parameter(description = "Filtra gli utenti associati a una determinata Lista.")
             @RequestParam(value = "target_list_id", required = false) Long targetListId,
             Authentication authentication) {
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Set<UserSummaryDto> usersList = userService.getAllVisibleUsers(userDetails.getId(), targetListId);
+        Set<UserDetailDto> usersList = userService.getAllVisibleUsers(userDetails.getId(), targetListId);
 
         return ResponseEntity.ok(new SuccessResponse<>(
                 true, 200, usersList, "Utenti trovati con successo", System.currentTimeMillis()
@@ -106,6 +113,22 @@ public class UserController {
     }
 
     @Operation(
+            summary = "Elimina una lista di utenti",
+            description = "Esegue la cancellazione di una lista di utenti. Richiede permessi di alto livello."
+    )
+    @DeleteMapping("/delete/list/")
+    public ResponseEntity<SuccessResponse<Void>> deleteList(
+            @Parameter(description = "IDs degli utenti da eliminare.", required = true)
+            @RequestParam(value = "ids_target_user") Set<Long> targetUsersIds,
+            Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        userService.deleteList(targetUsersIds, userDetails.getId());
+        return ResponseEntity.ok(new SuccessResponse<>(
+                true, 200, null, "Utenti eliminati con successo", System.currentTimeMillis()
+        ));
+    }
+
+    @Operation(
             summary = "Aggiorna profilo utente",
             description = "Modifica i dati di un utente esistente (nome, email, password, ruoli)."
     )
@@ -119,5 +142,72 @@ public class UserController {
         return ResponseEntity.ok(new SuccessResponse<>(
                 true, 200, userUpdated, "Utente modificato con successo", System.currentTimeMillis()
         ));
+    }
+
+    @Operation(
+            summary = "Modifica una lista di utenti",
+            description = "Modifica degli utenti all'interno dell'organizzazione dell'utente autenticato. Richiede permessi di amministrazione."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Utenti modificati con successo"),
+            @ApiResponse(responseCode = "400", description = "Dati di input non validi"),
+            @ApiResponse(responseCode = "403", description = "Permessi insufficienti"),
+            @ApiResponse(responseCode = "409", description = "Errore di conflitti con l'email")
+    })
+    @PutMapping("/update/list/")
+    public ResponseEntity<SuccessResponse<Set<UserSummaryDto>>> updateListUsers(@RequestBody @Valid Set<UserUpdateDto> users, Authentication authentication){
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+
+        Set<UserSummaryDto> usersUpdated = userService.updateListUsers(users, userDetails.getId());
+        return ResponseEntity.ok(
+                new SuccessResponse<>(
+                        true,
+                        HttpStatus.OK.value(),
+                        usersUpdated,
+                        "Utenti modificati con successo",
+                        System.currentTimeMillis()
+                )
+        );
+    }
+
+    @Operation(
+            summary = "Registra una lista di utenti",
+            description = "Crea dei nuovi utenti all'interno dell'organizzazione dell'utente autenticato. Richiede permessi di amministrazione."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Utenti creati con successo"),
+            @ApiResponse(responseCode = "400", description = "Dati di input non validi"),
+            @ApiResponse(responseCode = "403", description = "Permessi insufficienti"),
+            @ApiResponse(responseCode = "409", description = "Email o Username già esistenti")
+    })
+    @PostMapping("/register/list/")
+    public ResponseEntity<SuccessResponse<Set<UserSummaryDto>>> registerListUsers(@RequestBody @Valid Set<UserCreateDto> users, Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Set<UserSummaryDto> usersRegister = userService.registerListUsers(users, userDetails.getId());
+        return new ResponseEntity<>(new SuccessResponse<>(
+                true, HttpStatus.CREATED.value(), usersRegister, "Utenti registrati con successo", System.currentTimeMillis()
+        ), HttpStatus.CREATED);
+    }
+
+    @Operation(
+            summary = "Crea un file excel con una lista di utenti",
+            description = "Crea un file di una lista di utenti all'interno dell'organizzazione dell'utente autenticato. Richiede permessi di amministrazione."
+    )
+    @GetMapping("/all/excel")
+    public ResponseEntity<InputStreamResource> getExcelAllUsers(
+            @Parameter(description = "Filtra gli utenti associati a una determinata Lista.")
+            @RequestParam(value = "target_list_id", required = false) Long targetListId,
+            Authentication authentication) {
+
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        ByteArrayInputStream in = userService.createExcelAllVisibleUsers(userDetails.getId(), targetListId);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Disposition", "attachment; filename=users.xlsx");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(new InputStreamResource(in));
     }
 }

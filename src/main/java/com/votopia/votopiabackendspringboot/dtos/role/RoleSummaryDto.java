@@ -38,12 +38,12 @@ public record RoleSummaryDto(
         String name,
         String color
 ) {
-    public RoleSummaryDto(Role r){
+    public RoleSummaryDto(Role r) {
         this(
-            r.getId(),
-            new ListSummaryDto(r.getList()),
-            r.getName(),
-            r.getColor()
+                r.getId(),
+                r.getList() != null ? new ListSummaryDto(r.getList()) : null,
+                r.getName(),
+                r.getColor()
         );
     }
 }
