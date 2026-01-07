@@ -2,10 +2,7 @@ package com.votopia.votopiabackendspringboot.controllers;
 
 import com.votopia.votopiabackendspringboot.config.CustomUserDetails;
 import com.votopia.votopiabackendspringboot.dtos.SuccessResponse;
-import com.votopia.votopiabackendspringboot.dtos.role.RoleCreateDto;
-import com.votopia.votopiabackendspringboot.dtos.role.RoleInfoResponse;
-import com.votopia.votopiabackendspringboot.dtos.role.RoleSummaryDto;
-import com.votopia.votopiabackendspringboot.dtos.role.RoleUpdateDto;
+import com.votopia.votopiabackendspringboot.dtos.role.*;
 import com.votopia.votopiabackendspringboot.services.auth.RoleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -30,6 +27,23 @@ public class RoleController {
 
     @Autowired
     private RoleService roleService;
+
+    @Operation(
+            summary = "Screen init ruoli",
+            description = "Restituisce i dati iniziali per la schermata ruoli: ruoli di organizzazione, ruoli di lista, statistiche e permessi dell'utente."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dati ruoli ottenuti con successo"),
+            @ApiResponse(responseCode = "403", description = "Permessi insufficienti")
+    })
+    @GetMapping("/init-screen/")
+    public ResponseEntity<SuccessResponse<RolesScreenInitDto>> initRolesScreen(Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        RolesScreenInitDto data = roleService.getRolesScreenInitialization(userDetails.getId());
+        return ResponseEntity.ok(new SuccessResponse<>(
+                true, 200, data, "Dati ruoli ottenuti con successo", System.currentTimeMillis()
+        ));
+    }
 
     @Operation(
             summary = "Crea un nuovo ruolo",

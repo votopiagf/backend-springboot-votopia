@@ -23,6 +23,7 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -133,20 +134,24 @@ public class UserServiceImpl implements UserService {
         User authUser = authService.getAuthenticatedUser(authUserId);
         Long orgId = authUser.getOrg().getId();
 
-        if (listId == null) {
-            if (!permissionService.hasPermission(authUserId, "view_all_user_organization")) {
-                throw new ForbiddenException("Permesso richiesto per vedere tutti gli utenti dell'organizzazione");
-            }
+        // Se ha permesso globale, vede TUTTI gli utenti dell'organizzazione
+        // INDIPENDENTEMENTE dal parametro target_list_id
+        if (permissionService.hasPermission(authUserId, "view_all_user_organization")) {
             return userRepository.findAllByOrgId(orgId).stream()
                     .map(UserDetailDto::new).collect(Collectors.toSet());
         }
 
-        if (!permissionService.hasPermissionOnList(authUserId, listId, "view_all_user_list")) {
-            throw new ForbiddenException("Non hai accesso agli utenti di questa lista");
+        // Se NON ha permesso globale, cerca a livello di lista
+        if (listId != null) {
+            if (!permissionService.hasPermissionOnList(authUserId, listId, "view_all_user_list")) {
+                throw new ForbiddenException("Non hai accesso agli utenti di questa lista");
+            }
+            return userRepository.findAllByListsId(listId).stream()
+                    .map(UserDetailDto::new).collect(Collectors.toSet());
         }
 
-        return userRepository.findAllByListsId(listId).stream()
-                .map(UserDetailDto::new).collect(Collectors.toSet());
+        // Nessun permesso disponibile
+        throw new ForbiddenException("Non hai i permessi per visualizzare gli utenti");
     }
 
     @Override
@@ -511,6 +516,8 @@ public class UserServiceImpl implements UserService {
         Long restrictedToListId = null;
         String restrictedToListName = null;
 
+        log.error("Sono qui");
+
         if (canViewAllOrg) {
             // L'utente può vedere tutta l'organizzazione
             availableLists = listRepository.findAllByOrgId(orgId).stream()
@@ -531,6 +538,7 @@ public class UserServiceImpl implements UserService {
             totalRoles = (long) allRoles.size();
             totalLists = (long) availableLists.size();
 
+            canViewList = true;
         } else {
             // L'utente può vedere solo la sua lista
             Set<com.votopia.votopiabackendspringboot.entities.lists.List> userLists = authUser.getLists();

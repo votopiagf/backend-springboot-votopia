@@ -1,5 +1,6 @@
 package com.votopia.votopiabackendspringboot.services.impl.auth;
 
+import com.votopia.votopiabackendspringboot.dtos.permission.PermissionDetailDto;
 import com.votopia.votopiabackendspringboot.dtos.permission.PermissionSummaryDto;
 import com.votopia.votopiabackendspringboot.entities.lists.List;
 import com.votopia.votopiabackendspringboot.entities.auth.User;
@@ -34,10 +35,10 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     @Override
-    public java.util.List<PermissionSummaryDto> getUserPermissions(Long userId) {
+    public java.util.List<PermissionDetailDto> getUserPermissions(Long userId) {
         return userRepository.findAllPermissionsByUserId(userId).stream()
-                .map(PermissionSummaryDto::new) // Niente cast qui!
-                .collect(Collectors.toList());
+                .map(PermissionDetailDto::new) // Niente cast qui!
+                .toList();
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.votopia.votopiabackendspringboot.services.auth;
 
+import com.votopia.votopiabackendspringboot.dtos.permission.PermissionDetailDto;
 import com.votopia.votopiabackendspringboot.dtos.permission.PermissionSummaryDto;
 import com.votopia.votopiabackendspringboot.entities.auth.User;
 import com.votopia.votopiabackendspringboot.entities.lists.List; // La tua entità
@@ -19,7 +20,7 @@ public interface PermissionService {
      * Recupera la lista di tutti i permessi associati all'utente.
      * Corrisponde a 'get_user_permissions' in Django.
      */
-    java.util.List<PermissionSummaryDto> getUserPermissions(Long userId);
+    java.util.List<PermissionDetailDto> getUserPermissions(Long userId);
 
     /**
      * Verifica l'esistenza di un utente attivo (non eliminato logicamente).

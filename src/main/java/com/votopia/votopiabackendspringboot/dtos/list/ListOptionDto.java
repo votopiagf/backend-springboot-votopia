@@ -15,7 +15,7 @@ public record ListOptionDto(
         this(
                 list.getId(),
                 list.getName(),
-                list.getOrg() != null ? list.getOrg().getName() : null
+                list.getSchool() != null ? list.getSchool().getName() : null
         );
     }
 }

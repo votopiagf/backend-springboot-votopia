@@ -1,11 +1,13 @@
 package com.votopia.votopiabackendspringboot.services.impl.auth;
 
+import com.votopia.votopiabackendspringboot.dtos.permission.PermissionDetailDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleInfoResponse;
 import com.votopia.votopiabackendspringboot.dtos.permission.PermissionSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleOptionDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleUpdateDto;
+import com.votopia.votopiabackendspringboot.dtos.role.RolesScreenInitDto;
 import com.votopia.votopiabackendspringboot.entities.lists.List;
 import com.votopia.votopiabackendspringboot.entities.auth.Permission;
 import com.votopia.votopiabackendspringboot.entities.auth.Role;
@@ -37,6 +39,73 @@ public class RoleServiceImpl implements RoleService {
     @Autowired private PermissionService permissionService;
     @Autowired private PermissionRepository permissionRepository;
     @Autowired private ListRepository listRepository;
+
+    @Override
+    public RolesScreenInitDto getRolesScreenInitialization(Long authUserId) {
+        User authUser = authService.getAuthenticatedUser(authUserId);
+        Long orgId = authUser.getOrg().getId();
+
+        boolean canViewAllOrg = permissionService.hasPermission(authUserId, "view_all_role_organization");
+
+        Set<Role> orgRoles = new HashSet<>();
+        Set<Role> listRoles = new HashSet<>();
+        Long restrictedToListId = null;
+        String restrictedToListName = null;
+        boolean canFilterByList;
+
+        if (canViewAllOrg) {
+            Set<Role> allRoles = roleRepository.findAllByOrganizationId(orgId);
+            for (Role r : allRoles) {
+                if (r.getList() == null) orgRoles.add(r); else listRoles.add(r);
+            }
+            canFilterByList = true;
+        } else {
+            Set<com.votopia.votopiabackendspringboot.entities.lists.List> userLists = authUser.getLists();
+            java.util.List<Long> allowedListIds = userLists.stream()
+                    .map(com.votopia.votopiabackendspringboot.entities.lists.List::getId)
+                    .filter(listId -> permissionService.hasPermissionOnList(authUserId, listId, "view_all_role_list"))
+                    .toList();
+
+            if (allowedListIds.isEmpty()) throw new ForbiddenException("Non hai i permessi per visualizzare i ruoli");
+
+            if (allowedListIds.size() == 1) {
+                final Long onlyListId = allowedListIds.get(0);
+                restrictedToListId = onlyListId;
+                restrictedToListName = userLists.stream()
+                        .filter(l -> l.getId().equals(onlyListId))
+                        .findFirst().map(com.votopia.votopiabackendspringboot.entities.lists.List::getName)
+                        .orElse(null);
+            }
+
+            for (Long listId : allowedListIds) {
+                listRoles.addAll(roleRepository.findAllByListId(listId));
+            }
+            canFilterByList = true;
+        }
+
+        Set<RoleOptionDto> orgRoleDtos = orgRoles.stream().map(RoleOptionDto::new).collect(Collectors.toSet());
+        Set<RoleOptionDto> listRoleDtos = listRoles.stream().map(RoleOptionDto::new).collect(Collectors.toSet());
+
+        long totalOrgRoles = orgRoleDtos.size();
+        long totalListRoles = listRoleDtos.size();
+        long totalRoles = totalOrgRoles + totalListRoles;
+
+        java.util.List<com.votopia.votopiabackendspringboot.dtos.permission.PermissionDetailDto> userPermissions =
+                permissionService.getUserPermissions(authUserId);
+
+        return new RolesScreenInitDto(
+                orgRoleDtos,
+                listRoleDtos,
+                totalRoles,
+                totalOrgRoles,
+                totalListRoles,
+                canViewAllOrg,
+                canFilterByList,
+                restrictedToListId,
+                restrictedToListName,
+                userPermissions
+        );
+    }
 
     @Override
     @Transactional
@@ -260,7 +329,7 @@ public class RoleServiceImpl implements RoleService {
     private void validatePermissionsPossession(Long authUserId, Set<Long> permsToAssign) {
         if (permsToAssign == null || permsToAssign.isEmpty()) return;
         Set<Long> userPermIds = permissionService.getUserPermissions(authUserId).stream()
-                .map(PermissionSummaryDto::id).collect(Collectors.toSet());
+                .map(PermissionDetailDto::id).collect(Collectors.toSet());
         if (!userPermIds.containsAll(permsToAssign)) {
             throw new ForbiddenException("Non puoi assegnare permessi che non possiedi.");
         }
@@ -273,3 +342,4 @@ public class RoleServiceImpl implements RoleService {
         role.setPermissions(new HashSet<>(perms));
     }
 }
+

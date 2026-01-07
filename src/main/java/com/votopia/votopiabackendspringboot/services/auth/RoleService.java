@@ -5,6 +5,7 @@ import com.votopia.votopiabackendspringboot.dtos.role.RoleCreateDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleOptionDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleUpdateDto;
+import com.votopia.votopiabackendspringboot.dtos.role.RolesScreenInitDto;
 import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
 import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
 import io.micrometer.common.lang.Nullable;
@@ -159,4 +160,15 @@ public interface RoleService {
      * @throws NotFoundException  Se l'utente o la lista non vengono trovati.
      */
     Set<RoleOptionDto> getAssignableRolesForUserCreation(Long authUserId, @Nullable Long targetListId);
+
+    /**
+     * Nuovo: Screen init per ruoli
+     * Fornisce i dati necessari per l'inizializzazione della schermata dei ruoli,
+     * inclusi i permessi disponibili e altre informazioni di configurazione.
+     *
+     * @param authUserId ID dell'utente autenticato.
+     * @return           Un oggetto {@link RolesScreenInitDto} contenente i dati di inizializzazione.
+     * @throws ForbiddenException Se l'utente non ha i permessi necessari per visualizzare i dati.
+     */
+    RolesScreenInitDto getRolesScreenInitialization(Long authUserId);
 }
