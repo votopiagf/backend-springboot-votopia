@@ -33,29 +33,23 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(AbstractHttpConfigurer::disable) // DISABILITIAMO il cors standard di security per usare il filtro personalizzato sotto
+                .cors(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // 1. PERMETTI SEMPRE LE CHIAMATE OPTIONS (PREFLIGHT)
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // 2. I TUOI ENDPOINT PUBBLICI (Nota il doppio asterisco)
                         .requestMatchers("/api/auth/login/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/test/encrypt-password/**").permitAll()
-
-                        // QUI ERA IL PROBLEMA: Usa /** per coprire lo slash finale
                         .requestMatchers("/api/organizations/by-code/**").permitAll()
-
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // Aggiungiamo il filtro JWT
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                // Aggiungiamo il filtro CORS esplicito PRIMA di tutto
-                .addFilterBefore(corsFilter(), UsernamePasswordAuthenticationFilter.class);
+                // CORS PRIMA di JWT
+                .addFilterBefore(corsFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(jwtAuthFilter, CorsFilter.class); // JWT DOPO CORS
 
         return http.build();
     }
+
 
     // 3. DEFINIZIONE DEL FILTRO CORS (Massima priorità)
     @Bean

@@ -3,6 +3,7 @@ package com.votopia.votopiabackendspringboot.services.impl.auth;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleInfoResponse;
 import com.votopia.votopiabackendspringboot.dtos.permission.PermissionSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleCreateDto;
+import com.votopia.votopiabackendspringboot.dtos.role.RoleOptionDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleUpdateDto;
 import com.votopia.votopiabackendspringboot.entities.lists.List;
@@ -168,6 +169,62 @@ public class RoleServiceImpl implements RoleService {
         }
 
         return new RoleSummaryDto(roleRepository.save(roleTarget));
+    }
+
+    @Override
+    @Transactional
+    public Set<RoleOptionDto> getAssignableRolesForUserCreation(Long authUserId, @Nullable Long targetListId) {
+        User authUser = authService.getAuthenticatedUser(authUserId);
+        Long orgId = authUser.getOrg().getId();
+
+        // Calcolo il livello massimo dell'utente nel contesto appropriato
+        int maxAuthLevel;
+        Set<Role> candidateRoles;
+
+        if (targetListId == null) {
+            // Caso 1: Creazione utente a livello organizzazione
+            if (!permissionService.hasPermission(authUserId, "create_user_for_organization")) {
+                throw new ForbiddenException("Non hai il permesso 'create_user_for_organization'");
+            }
+            maxAuthLevel = roleRepository.findMaxLevelByUserIdAndOrgId(authUserId, orgId);
+            // Solo ruoli globali (list IS NULL)
+            candidateRoles = roleRepository.findAllByOrganizationId(orgId).stream()
+                    .filter(r -> r.getList() == null)
+                    .collect(Collectors.toSet());
+        } else {
+            // Caso 2: Creazione utente in una lista specifica
+            List targetList = listRepository.findById(targetListId)
+                    .orElseThrow(() -> new NotFoundException("Lista non trovata"));
+
+            if (!targetList.getOrg().getId().equals(orgId)) {
+                throw new ForbiddenException("Lista non appartiene alla tua organizzazione");
+            }
+
+            boolean hasOrgPerm = permissionService.hasPermission(authUserId, "create_user_for_organization");
+            boolean hasListPerm = permissionService.hasPermissionOnList(authUserId, targetListId, "create_user_for_list");
+
+            if (!hasOrgPerm && !hasListPerm) {
+                throw new ForbiddenException("Non hai permessi per creare utenti in questa lista");
+            }
+
+            maxAuthLevel = roleRepository.findMaxLevelByUserIdAndListId(authUserId, targetListId);
+            // Ruoli della lista + eventualmente ruoli globali se ha permesso org-wide
+            candidateRoles = new HashSet<>(roleRepository.findAllByListId(targetListId));
+            if (hasOrgPerm) {
+                candidateRoles.addAll(
+                    roleRepository.findAllByOrganizationId(orgId).stream()
+                            .filter(r -> r.getList() == null)
+                            .collect(Collectors.toSet())
+                );
+            }
+        }
+
+        // Filtra per livello inferiore al massimo dell'utente
+        final int finalMaxAuthLevel = maxAuthLevel;
+        return candidateRoles.stream()
+                .filter(r -> r.getLevel() < finalMaxAuthLevel)
+                .map(RoleOptionDto::new)
+                .collect(Collectors.toSet());
     }
 
     // --- HELPERS PRIVATI ---

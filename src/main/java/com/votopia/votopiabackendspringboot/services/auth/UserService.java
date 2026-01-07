@@ -1,9 +1,8 @@
 package com.votopia.votopiabackendspringboot.services.auth;
 
-import com.votopia.votopiabackendspringboot.dtos.user.UserCreateDto;
-import com.votopia.votopiabackendspringboot.dtos.user.UserDetailDto;
-import com.votopia.votopiabackendspringboot.dtos.user.UserSummaryDto;
-import com.votopia.votopiabackendspringboot.dtos.user.UserUpdateDto;
+import com.votopia.votopiabackendspringboot.dtos.list.ListOptionDto;
+import com.votopia.votopiabackendspringboot.dtos.role.RoleOptionDto;
+import com.votopia.votopiabackendspringboot.dtos.user.*;
 import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
 import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
 import com.votopia.votopiabackendspringboot.exceptions.ConflictException;
@@ -122,4 +121,61 @@ public interface UserService {
     void deleteList(Set<Long> targetUsers, Long authUserId);
 
     ByteArrayInputStream createExcelAllVisibleUsers(Long authUserId, @Nullable Long targetListId);
+
+    /**
+     * Restituisce le liste assegnabili all'utente durante la creazione, in base ai permessi.
+     * Delega a ListService.getAssignableListsForUserCreation().
+     *
+     * @param authUserId ID dell'utente autenticato.
+     * @return Set di ListOptionDto.
+     */
+    Set<ListOptionDto> getAssignableListsForUserCreation(Long authUserId);
+
+    /**
+     * Restituisce i ruoli assegnabili all'utente durante la creazione, in base ai permessi.
+     * Delega a RoleService.getAssignableRolesForUserCreation().
+     *
+     * @param authUserId    ID dell'utente autenticato.
+     * @param targetListId  ID opzionale della lista target.
+     * @return Set di RoleOptionDto.
+     */
+    Set<RoleOptionDto> getAssignableRolesForUserCreation(Long authUserId, @Nullable Long targetListId);
+
+    /**
+     * Restituisce tutti i dati necessari per inizializzare la schermata di creazione utente nel frontend.
+     * Include liste disponibili e ruoli disponibili a livello organizzazione.
+     *
+     * @param authUserId ID dell'utente autenticato.
+     * @return UserCreationInitDto contenente liste e ruoli disponibili.
+     * @throws ForbiddenException Se l'utente non ha i permessi necessari.
+     * @throws NotFoundException  Se l'utente non viene trovato.
+     */
+    UserCreationInitDto getInitializationDataForUserCreation(Long authUserId);
+
+    /**
+     * Restituisce TUTTI i dati necessari per inizializzare la schermata Users nel frontend.
+     * <p>
+     * Include:
+     * <ul>
+     * <li>Tutte le liste disponibili (filtrate per permessi)</li>
+     * <li>Tutti i ruoli di organizzazione disponibili</li>
+     * <li>Tutti i ruoli di lista disponibili (con info su lista di appartenenza)</li>
+     * <li>Statistiche: totale utenti, totale ruoli, totale liste</li>
+     * <li>Scope di filtro: se l'utente può filtrare per tutta l'org o solo per la sua lista</li>
+     * </ul>
+     * </p>
+     * <p>
+     * Logica di permessi:
+     * <ul>
+     * <li>Se ha {@code view_all_user_organization}: vede tutti gli utenti/liste/ruoli dell'organizzazione</li>
+     * <li>Se ha solo {@code view_all_user_list}: vede solo utenti/ruoli della sua lista</li>
+     * </ul>
+     * </p>
+     *
+     * @param authUserId ID dell'utente autenticato.
+     * @return UsersScreenInitDto con TUTTI i dati necessari per la schermata Users.
+     * @throws ForbiddenException Se l'utente non ha alcun permesso di visualizzazione utenti.
+     * @throws NotFoundException  Se l'utente non viene trovato.
+     */
+    UsersScreenInitDto getUsersScreenInitialization(Long authUserId);
 }

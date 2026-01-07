@@ -2,6 +2,7 @@ package com.votopia.votopiabackendspringboot.services.auth;
 
 import com.votopia.votopiabackendspringboot.dtos.role.RoleInfoResponse;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleCreateDto;
+import com.votopia.votopiabackendspringboot.dtos.role.RoleOptionDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.role.RoleUpdateDto;
 import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
@@ -137,4 +138,25 @@ public interface RoleService {
      * @throws NotFoundException  Se il ruolo o l'utente non esistono.
      */
     RoleSummaryDto update(RoleUpdateDto dto, Long authUserId);
+
+    /**
+     * Restituisce i ruoli che l'utente autenticato può assegnare durante la creazione di un utente,
+     * rispettando i suoi permessi gerarchici.
+     * <p>
+     * Logica di filtro:
+     * <ul>
+     * <li>Se {@code targetListId} è {@code null}: restituisce ruoli globali (ORG) di cui l'utente
+     * ha il permesso {@code create_user_for_organization}, filtrando per livello inferiore al suo.</li>
+     * <li>Se {@code targetListId} è fornito: restituisce ruoli della lista specificata e opzionalmente
+     * ruoli globali, se l'utente ha il permesso necessario, filtrando per livello.</li>
+     * </ul>
+     * </p>
+     *
+     * @param authUserId   ID dell'utente autenticato.
+     * @param targetListId ID opzionale della lista target. Se {@code null}, ritorna ruoli globali.
+     * @return             Un {@link Set} di {@link RoleOptionDto} con i ruoli assegnabili.
+     * @throws ForbiddenException Se l'utente non ha i permessi necessari.
+     * @throws NotFoundException  Se l'utente o la lista non vengono trovati.
+     */
+    Set<RoleOptionDto> getAssignableRolesForUserCreation(Long authUserId, @Nullable Long targetListId);
 }

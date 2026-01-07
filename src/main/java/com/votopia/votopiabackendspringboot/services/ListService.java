@@ -1,6 +1,7 @@
 package com.votopia.votopiabackendspringboot.services;
 
 import com.votopia.votopiabackendspringboot.dtos.list.ListCreateDto;
+import com.votopia.votopiabackendspringboot.dtos.list.ListOptionDto;
 import com.votopia.votopiabackendspringboot.dtos.list.ListSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.list.ListUpdateDto;
 import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
@@ -71,4 +72,19 @@ public interface ListService {
      * @throws NotFoundException  Se l'utente non viene trovato nel sistema.
      */
     Set<ListSummaryDto> getAllVisibleLists(Long authUserId);
+
+    /**
+     * Restituisce le liste che l'utente autenticato può assegnare durante la creazione di un utente,
+     * rispettando i suoi permessi specifici.
+     * <p>
+     * Se l'utente ha {@code create_user_for_organization}, vede tutte le liste dell'organizzazione.
+     * Se ha solo {@code create_user_for_list}, vede solo le liste su cui ha il permesso {@code create_user_for_list}.
+     * </p>
+     *
+     * @param authUserId ID dell'utente autenticato.
+     * @return           Un {@link Set} di {@link ListOptionDto} con le liste assegnabili.
+     * @throws ForbiddenException Se l'utente non ha permessi di creazione utenti.
+     * @throws NotFoundException  Se l'utente non viene trovato.
+     */
+    Set<ListOptionDto> getAssignableListsForUserCreation(Long authUserId);
 }

@@ -1,9 +1,8 @@
 package com.votopia.votopiabackendspringboot.services.impl.auth;
 
-import com.votopia.votopiabackendspringboot.dtos.user.UserCreateDto;
-import com.votopia.votopiabackendspringboot.dtos.user.UserDetailDto;
-import com.votopia.votopiabackendspringboot.dtos.user.UserSummaryDto;
-import com.votopia.votopiabackendspringboot.dtos.user.UserUpdateDto;
+import com.votopia.votopiabackendspringboot.dtos.user.*;
+import com.votopia.votopiabackendspringboot.dtos.list.ListOptionDto;
+import com.votopia.votopiabackendspringboot.dtos.role.RoleOptionDto;
 import com.votopia.votopiabackendspringboot.entities.auth.Role;
 import com.votopia.votopiabackendspringboot.entities.auth.User;
 import com.votopia.votopiabackendspringboot.entities.lists.List;
@@ -12,8 +11,10 @@ import com.votopia.votopiabackendspringboot.exceptions.NotFoundException;
 import com.votopia.votopiabackendspringboot.repositories.lists.ListRepository;
 import com.votopia.votopiabackendspringboot.repositories.auth.RoleRepository;
 import com.votopia.votopiabackendspringboot.repositories.auth.UserRepository;
+import com.votopia.votopiabackendspringboot.services.ListService;
 import com.votopia.votopiabackendspringboot.services.auth.AuthService;
 import com.votopia.votopiabackendspringboot.services.auth.UserService;
+import com.votopia.votopiabackendspringboot.services.auth.RoleService;
 import com.votopia.votopiabackendspringboot.services.auth.PermissionService;
 import com.votopia.votopiabackendspringboot.exceptions.ForbiddenException;
 import jakarta.annotation.Nullable;
@@ -50,6 +51,8 @@ public class UserServiceImpl implements UserService {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private AuthService authService;
     @Autowired private PermissionService permissionService;
+    @Autowired private ListService listService;
+    @Autowired private RoleService roleService;
 
     @Override
     @Transactional
@@ -459,6 +462,116 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Errore generazione Excel", e);
         }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<ListOptionDto> getAssignableListsForUserCreation(Long authUserId) {
+        return listService.getAssignableListsForUserCreation(authUserId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<RoleOptionDto> getAssignableRolesForUserCreation(Long authUserId, @Nullable Long targetListId) {
+        return roleService.getAssignableRolesForUserCreation(authUserId, targetListId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserCreationInitDto getInitializationDataForUserCreation(Long authUserId) {
+        // Recupera le liste disponibili
+        Set<ListOptionDto> availableLists = listService.getAssignableListsForUserCreation(authUserId);
+
+        // Recupera i ruoli a livello organizzazione
+        Set<RoleOptionDto> availableRoles = roleService.getAssignableRolesForUserCreation(authUserId, null);
+
+        // Restituisce un DTO contenente tutti i dati necessari
+        return new UserCreationInitDto(availableLists, availableRoles, new java.util.HashSet<>());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UsersScreenInitDto getUsersScreenInitialization(Long authUserId) {
+        User authUser = authService.getAuthenticatedUser(authUserId);
+        Long orgId = authUser.getOrg().getId();
+
+        // Verifica permessi
+        boolean canViewAllOrg = permissionService.hasPermission(authUserId, "view_all_user_organization");
+        boolean canViewList = permissionService.hasPermission(authUserId, "view_all_user_list");
+
+        if (!canViewAllOrg && !canViewList) {
+            throw new ForbiddenException("Non hai i permessi per visualizzare gli utenti");
+        }
+
+        Set<ListOptionDto> availableLists;
+        Set<RoleOptionDto> availableOrgRoles = new java.util.HashSet<>();
+        Set<RoleOptionDto> availableListRoles = new java.util.HashSet<>();
+        Long totalUsers;
+        Long totalRoles;
+        Long totalLists;
+        Long restrictedToListId = null;
+        String restrictedToListName = null;
+
+        if (canViewAllOrg) {
+            // L'utente può vedere tutta l'organizzazione
+            availableLists = listRepository.findAllByOrgId(orgId).stream()
+                    .map(ListOptionDto::new)
+                    .collect(Collectors.toSet());
+
+            // Tutti i ruoli dell'organizzazione
+            Set<Role> allRoles = roleRepository.findAllByOrganizationId(orgId);
+            for (Role role : allRoles) {
+                if (role.getList() == null) {
+                    availableOrgRoles.add(new RoleOptionDto(role));
+                } else {
+                    availableListRoles.add(new RoleOptionDto(role));
+                }
+            }
+
+            totalUsers = userRepository.countByOrgIdAndDeletedFalse(orgId);
+            totalRoles = (long) allRoles.size();
+            totalLists = (long) availableLists.size();
+
+        } else {
+            // L'utente può vedere solo la sua lista
+            Set<com.votopia.votopiabackendspringboot.entities.lists.List> userLists = authUser.getLists();
+
+            if (userLists.isEmpty()) {
+                throw new ForbiddenException("Non appartieni a nessuna lista");
+            }
+
+            // Prendi la prima lista (o puoi fare logica diversa)
+            com.votopia.votopiabackendspringboot.entities.lists.List restrictedList = userLists.iterator().next();
+            restrictedToListId = restrictedList.getId();
+            restrictedToListName = restrictedList.getName();
+
+            availableLists = Set.of(new ListOptionDto(restrictedList));
+
+            // Solo i ruoli della lista
+            Set<Role> listRoles = roleRepository.findAllByListId(restrictedToListId);
+            for (Role role : listRoles) {
+                availableListRoles.add(new RoleOptionDto(role));
+            }
+
+            // Statistiche limitate alla lista
+            totalUsers = (long) userRepository.findAllByListsId(restrictedToListId).size();
+            totalRoles = (long) listRoles.size();
+            totalLists = 1L;
+        }
+
+        return new UsersScreenInitDto(
+                availableLists,
+                availableOrgRoles,
+                availableListRoles,
+                totalUsers,
+                totalRoles,
+                totalLists,
+                canViewAllOrg,
+                canViewList,
+                restrictedToListId,
+                restrictedToListName
+        );
+    }
+
 
     // --- HELPERS ---
 

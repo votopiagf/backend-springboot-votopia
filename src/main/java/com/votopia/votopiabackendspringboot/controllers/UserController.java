@@ -2,10 +2,9 @@ package com.votopia.votopiabackendspringboot.controllers;
 
 import com.votopia.votopiabackendspringboot.config.CustomUserDetails;
 import com.votopia.votopiabackendspringboot.dtos.SuccessResponse;
-import com.votopia.votopiabackendspringboot.dtos.user.UserCreateDto;
-import com.votopia.votopiabackendspringboot.dtos.user.UserDetailDto;
-import com.votopia.votopiabackendspringboot.dtos.user.UserSummaryDto;
-import com.votopia.votopiabackendspringboot.dtos.user.UserUpdateDto;
+import com.votopia.votopiabackendspringboot.dtos.list.ListOptionDto;
+import com.votopia.votopiabackendspringboot.dtos.role.RoleOptionDto;
+import com.votopia.votopiabackendspringboot.dtos.user.*;
 import com.votopia.votopiabackendspringboot.services.auth.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -38,6 +37,44 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Operation(
+            summary = "Inizializza la schermata di creazione utente",
+            description = "Restituisce tutti i dati necessari per inizializzare il form di creazione utente nel frontend: liste disponibili e ruoli disponibili."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dati di inizializzazione ottenuti con successo"),
+            @ApiResponse(responseCode = "403", description = "Permessi insufficienti"),
+            @ApiResponse(responseCode = "404", description = "Utente non trovato")
+    })
+    @GetMapping("/init-creation/")
+    public ResponseEntity<SuccessResponse<UserCreationInitDto>> initializeUserCreation(Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        UserCreationInitDto initData = userService.getInitializationDataForUserCreation(userDetails.getId());
+
+        return ResponseEntity.ok(new SuccessResponse<>(
+                true, 200, initData, "Dati di inizializzazione ottenuti con successo", System.currentTimeMillis()
+        ));
+    }
+
+    @Operation(
+            summary = "Inizializza la schermata Users completa",
+            description = "Restituisce TUTTI i dati necessari per inizializzare la schermata Users: liste, ruoli (org e list), statistiche (totale utenti, ruoli, liste) e scope di filtro disponibile."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dati schermata Users ottenuti con successo"),
+            @ApiResponse(responseCode = "403", description = "Permessi insufficienti"),
+            @ApiResponse(responseCode = "404", description = "Utente non trovato")
+    })
+    @GetMapping("/init-screen/")
+    public ResponseEntity<SuccessResponse<UsersScreenInitDto>> initializeUsersScreen(Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        UsersScreenInitDto screenData = userService.getUsersScreenInitialization(userDetails.getId());
+
+        return ResponseEntity.ok(new SuccessResponse<>(
+                true, 200, screenData, "Dati schermata Users ottenuti con successo", System.currentTimeMillis()
+        ));
+    }
 
     @Operation(
             summary = "Registra un nuovo utente",
@@ -209,5 +246,46 @@ public class UserController {
                 .headers(headers)
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(new InputStreamResource(in));
+    }
+
+    @Operation(
+            summary = "Ottieni liste assegnabili per creazione utente",
+            description = "Restituisce le liste che l'utente autenticato può assegnare durante la creazione di un nuovo utente, rispettando i suoi permessi."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Liste restituite con successo"),
+            @ApiResponse(responseCode = "403", description = "Permessi insufficienti"),
+            @ApiResponse(responseCode = "404", description = "Utente non trovato")
+    })
+    @GetMapping("/options/lists")
+    public ResponseEntity<SuccessResponse<Set<ListOptionDto>>> getAssignableLists(Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Set<ListOptionDto> lists = userService.getAssignableListsForUserCreation(userDetails.getId());
+
+        return ResponseEntity.ok(new SuccessResponse<>(
+                true, 200, lists, "Liste disponibili ottenute con successo", System.currentTimeMillis()
+        ));
+    }
+
+    @Operation(
+            summary = "Ottieni ruoli assegnabili per creazione utente",
+            description = "Restituisce i ruoli che l'utente autenticato può assegnare durante la creazione di un nuovo utente, rispettando i suoi permessi gerarchici e il contesto (organizzazione o lista specifica)."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Ruoli restituiti con successo"),
+            @ApiResponse(responseCode = "403", description = "Permessi insufficienti"),
+            @ApiResponse(responseCode = "404", description = "Utente o lista non trovati")
+    })
+    @GetMapping("/options/roles")
+    public ResponseEntity<SuccessResponse<Set<RoleOptionDto>>> getAssignableRoles(
+            @Parameter(description = "ID opzionale della lista target. Se omesso, restituisce ruoli a livello organizzazione.")
+            @RequestParam(value = "target_list_id", required = false) Long targetListId,
+            Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Set<RoleOptionDto> roles = userService.getAssignableRolesForUserCreation(userDetails.getId(), targetListId);
+
+        return ResponseEntity.ok(new SuccessResponse<>(
+                true, 200, roles, "Ruoli disponibili ottenuti con successo", System.currentTimeMillis()
+        ));
     }
 }

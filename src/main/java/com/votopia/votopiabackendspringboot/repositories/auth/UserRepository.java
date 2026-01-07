@@ -49,4 +49,6 @@ public interface UserRepository extends JpaRepository<User, Long> { ;
     List<User> findUsersByIdAndOrgId(Long id, Long orgId);
 
     boolean existsByEmailAndId(String email, Long id);
+
+    Long countByOrgIdAndDeletedFalse(Long orgId);
 }

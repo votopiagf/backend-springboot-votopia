@@ -1,6 +1,7 @@
 package com.votopia.votopiabackendspringboot.services.impl;
 
 import com.votopia.votopiabackendspringboot.dtos.list.ListCreateDto;
+import com.votopia.votopiabackendspringboot.dtos.list.ListOptionDto;
 import com.votopia.votopiabackendspringboot.dtos.list.ListSummaryDto;
 import com.votopia.votopiabackendspringboot.dtos.list.ListUpdateDto;
 import com.votopia.votopiabackendspringboot.entities.lists.List;
@@ -132,6 +133,28 @@ public class ListServiceImpl implements ListService {
 
         return lists.stream()
                 .map(ListSummaryDto::new)
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    @Transactional
+    public Set<ListOptionDto> getAssignableListsForUserCreation(Long authUserId) {
+        User authUser = authService.getAuthenticatedUser(authUserId);
+        Long orgId = authUser.getOrg().getId();
+
+        boolean canOrgWide = permissionService.hasPermission(authUserId, "create_user_for_organization");
+
+        if (canOrgWide) {
+            // Se ha permesso globale, vede tutte le liste dell'organizzazione
+            return listRepository.findAllByOrgId(orgId).stream()
+                    .map(ListOptionDto::new)
+                    .collect(Collectors.toSet());
+        }
+
+        // Altrimenti, solo le liste su cui ha il permesso create_user_for_list
+        return listRepository.findAllByOrgId(orgId).stream()
+                .filter(list -> permissionService.hasPermissionOnList(authUserId, list.getId(), "create_user_for_list"))
+                .map(ListOptionDto::new)
                 .collect(Collectors.toSet());
     }
 
